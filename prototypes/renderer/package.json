@@ -1,0 +1,21 @@
+{
+  "name": "renderer-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "bench": "node bench/run.mjs"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "opensheetmusicdisplay": "^2.2.1",
+    "verovio": "^6.3.0"
+  },
+  "devDependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "typescript": "5.9",
+    "vite": "^7.3.7"
+  }
+}

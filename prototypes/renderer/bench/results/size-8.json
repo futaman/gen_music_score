@@ -1,0 +1,110 @@
+[
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "PC",
+  "cpu": "1x",
+  "chunks": 119,
+  "firstPaintMs": 2779,
+  "pitchMedianMs": 45,
+  "pitchMaxMs": 79,
+  "relayoutMedianMs": 97,
+  "relayoutMaxMs": 130,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 6 / 往復 9 / DOM 6 / 合計 45 (fast)",
+   "relayout: worker 59 / 往復 60 / DOM 7 / 合計 97 (load)"
+  ]
+ },
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "タブレット",
+  "cpu": "4x",
+  "chunks": 119,
+  "firstPaintMs": 8281,
+  "pitchMedianMs": 154,
+  "pitchMaxMs": 247,
+  "relayoutMedianMs": 230,
+  "relayoutMaxMs": 267,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 8 / 往復 11 / DOM 27 / 合計 154 (fast)",
+   "relayout: worker 69 / 往復 74 / DOM 40 / 合計 252 (load)"
+  ]
+ },
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "スマホ",
+  "cpu": "4x",
+  "chunks": 119,
+  "firstPaintMs": 8761,
+  "pitchMedianMs": 117,
+  "pitchMaxMs": 143,
+  "relayoutMedianMs": 208,
+  "relayoutMaxMs": 213,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 29 / 往復 32 / DOM 42 / 合計 117 (fast)",
+   "relayout: worker 55 / 往復 56 / DOM 44 / 合計 208 (load)"
+  ]
+ },
+ {
+  "file": "mozart-k464-1-allegro.mxl",
+  "device": "PC",
+  "cpu": "1x",
+  "chunks": 34,
+  "firstPaintMs": 1831,
+  "pitchMedianMs": 44,
+  "pitchMaxMs": 90,
+  "relayoutMedianMs": 88,
+  "relayoutMaxMs": 97,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 7 / 往復 10 / DOM 7 / 合計 44 (fast)",
+   "relayout: worker 58 / 往復 58 / DOM 7 / 合計 96 (load)"
+  ]
+ },
+ {
+  "file": "mozart-k464-1-allegro.mxl",
+  "device": "タブレット",
+  "cpu": "4x",
+  "chunks": 34,
+  "firstPaintMs": 3287,
+  "pitchMedianMs": 150,
+  "pitchMaxMs": 217,
+  "relayoutMedianMs": 208,
+  "relayoutMaxMs": 225,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 6 / 往復 10 / DOM 31 / 合計 150 (fast)",
+   "relayout: worker 56 / 往復 59 / DOM 37 / 合計 208 (load)"
+  ]
+ },
+ {
+  "file": "mozart-k464-1-allegro.mxl",
+  "device": "スマホ",
+  "cpu": "4x",
+  "chunks": 34,
+  "firstPaintMs": 3408,
+  "pitchMedianMs": 183,
+  "pitchMaxMs": 242,
+  "relayoutMedianMs": 241,
+  "relayoutMaxMs": 257,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 7 / 往復 11 / DOM 42 / 合計 183 (fast)",
+   "relayout: worker 79 / 往復 83 / DOM 44 / 合計 247 (load)"
+  ]
+ }
+]

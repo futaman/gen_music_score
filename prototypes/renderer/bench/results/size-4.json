@@ -1,0 +1,56 @@
+[
+ {
+  "file": "synthetic-orchestra-500.musicxml",
+  "device": "PC",
+  "cpu": "1x",
+  "chunks": 125,
+  "firstPaintMs": 2477,
+  "pitchMedianMs": 56,
+  "pitchMaxMs": 128,
+  "relayoutMedianMs": 132,
+  "relayoutMaxMs": 187,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 11 / 往復 12 / DOM 14 / 合計 56 (fast)",
+   "relayout: worker 87 / 往復 88 / DOM 14 / 合計 132 (load)"
+  ]
+ },
+ {
+  "file": "synthetic-orchestra-500.musicxml",
+  "device": "タブレット",
+  "cpu": "4x",
+  "chunks": 125,
+  "firstPaintMs": 6764,
+  "pitchMedianMs": 279,
+  "pitchMaxMs": 357,
+  "relayoutMedianMs": 337,
+  "relayoutMaxMs": 368,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": false,
+  "breakdown": [
+   "pitch: worker 15 / 往復 19 / DOM 72 / 合計 279 (fast)",
+   "relayout: worker 93 / 往復 97 / DOM 76 / 合計 337 (load)"
+  ]
+ },
+ {
+  "file": "synthetic-orchestra-500.musicxml",
+  "device": "スマホ",
+  "cpu": "4x",
+  "chunks": 125,
+  "firstPaintMs": 7076,
+  "pitchMedianMs": 298,
+  "pitchMaxMs": 413,
+  "relayoutMedianMs": 405,
+  "relayoutMaxMs": 423,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": false,
+  "breakdown": [
+   "pitch: worker 12 / 往復 18 / DOM 80 / 合計 298 (fast)",
+   "relayout: worker 113 / 往復 116 / DOM 82 / 合計 419 (load)"
+  ]
+ }
+]

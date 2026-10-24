@@ -1,0 +1,39 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #d2d2d7;
+  --accent: #d70015;
+  --bar: #f5f5f7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --fg: #f2f2f7;
+    --muted: #a1a1a6;
+    --line: #3a3a3c;
+    --accent: #ff453a;
+    --bar: #2c2c2e;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+header, footer {
+  position: sticky; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 8px 16px; background: var(--bar); border-color: var(--line); border-style: solid; border-width: 0;
+}
+header { top: 0; border-bottom-width: 1px; }
+footer { bottom: 0; border-top-width: 1px; }
+select, button, .file-pick { min-height: 44px; font-size: 16px; }
+button, .file-pick {
+  min-width: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--fg); display: inline-flex; align-items: center; cursor: pointer;
+}
+.file-pick input { display: none; }
+#status, #timing { color: var(--muted); font-size: 14px; }
+#timing { margin-left: auto; font-variant-numeric: tabular-nums; }
+main { padding: 8px 16px 80px; }
+.chunk { border-bottom: 1px dashed var(--line); contain: layout paint; content-visibility: auto; contain-intrinsic-size: auto 600px; }
+.chunk svg { width: 100%; height: auto; display: block; color: var(--fg); fill: currentColor; }
+.chunk svg g.note.selected { color: var(--accent); fill: var(--accent); }
+.placeholder { color: var(--muted); padding: 16px 0; font-size: 14px; }

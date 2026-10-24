@@ -1,0 +1,36 @@
+import createVerovioModule from 'verovio/wasm';
+import { VerovioToolkit } from 'verovio/esm';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import fs from 'node:fs';
+import { execSync } from 'node:child_process';
+execSync('npx tsc src/chunk.ts --outDir bench/out --target es2022 --module es2022 --lib es2022,dom --skipLibCheck', { stdio: 'inherit' });
+const { splitMusicXml } = await import('./out/chunk.js');
+const M = await createVerovioModule();
+const tk = new VerovioToolkit(M);
+const opts = { pageWidth: 2100, pageHeight: 60000, adjustPageHeight: true, scale: 40, breaks: 'auto', footer: 'none', header: 'none' };
+tk.setOptions(opts);
+let xml = fs.readFileSync('../../test-assets/musicxml/synthetic-orchestra-500.musicxml', 'utf8');
+let n = 0; xml = xml.replace(/<note>/g, () => `<note id="n${n++}">`);
+let t = performance.now();
+const chunks = splitMusicXml(xml, 8, new DOMParser(), new XMLSerializer());
+console.log('split ms', (performance.now() - t) | 0, 'chunks', chunks.length);
+const c = chunks[5];
+const time = (label, f, k = 5) => { const r = []; for (let i = 0; i < k; i++) { const t0 = performance.now(); f(); r.push(performance.now() - t0); } r.sort((a, b) => a - b); console.log(label, r.map((x) => x | 0).join(' '), 'median', r[k >> 1] | 0); };
+time('musicxml load+render', () => { tk.loadData(c.xml); tk.renderToSVG(1); });
+time('musicxml load only', () => { tk.loadData(c.xml); });
+tk.loadData(c.xml); const mei = tk.getMEI();
+time('mei load+render', () => { tk.loadData(mei); tk.renderToSVG(1); });
+time('mei load only', () => { tk.loadData(mei); });
+time('render only', () => { tk.renderToSVG(1); });
+// editor API
+tk.loadData(mei);
+const id = c.xml.match(/<note id="(n\d+)"><pitch>/)[1];
+const r = tk.edit({ action: 'set', param: { elementId: id, attribute: 'pname', value: 'g' } });
+console.log('edit set', r, JSON.stringify(tk.getElementAttr(id)));
+time('edit pname + redoPagePitchPosLayout + render', () => { tk.edit({ action: 'set', param: { elementId: id, attribute: 'pname', value: Math.random() < 0.5 ? 'a' : 'b' } }); tk.redoPagePitchPosLayout(); tk.renderToSVG(1); });
+time('edit pname + redoLayout + render', () => { tk.edit({ action: 'set', param: { elementId: id, attribute: 'pname', value: 'c' } }); tk.redoLayout(); tk.renderToSVG(1); });
+// 4小節単位
+const c4 = splitMusicXml(xml, 4, new DOMParser(), new XMLSerializer())[10];
+time('4bars musicxml load+render', () => { tk.loadData(c4.xml); tk.renderToSVG(1); });
+tk.loadData(c4.xml); const mei4 = tk.getMEI();
+time('4bars mei load+render', () => { tk.loadData(mei4); tk.renderToSVG(1); });

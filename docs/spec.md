@@ -259,7 +259,7 @@ PC・タブレット・スマホの3端末で全機能（編曲を含む）を�
 | 層 | 候補 | 役割 |
 | --- | --- | --- |
 | フロント | React + TypeScript（Vite） | 画面全体 |
-| 楽譜描画 | Verovio（WebAssembly版）が第一候補。試作で性能が足りなければOpenSheetMusicDisplay | MusicXML→SVG表示、PDF化の元 |
+| 楽譜描画 | **Verovio（WebAssembly版）に決定**。数小節ずつのチャンクに分けて描画し、音高だけの変更は小節単位で差し替える（`docs/decisions/0001-renderer.md`） | MusicXML→SVG表示、PDF化の元 |
 | 音楽理論計算 | 自作のTypeScriptモジュール（音程計算はtonal.js等を補助に） | 移調・音域判定・縮約・割当 |
 | 再生 | Tone.js + 楽器サンプル | 試聴 |
 | 保存 | Googleドライブ（プロジェクトJSON＋MusicXML） | 保存・共有 |
