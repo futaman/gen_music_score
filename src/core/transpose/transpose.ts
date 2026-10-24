@@ -3,8 +3,9 @@
 // ここではパートの複製と楽器の指定だけを行う。
 
 import { getInstrument } from '../instruments';
+import { makeRests, newId, splitDuration } from '../model/rhythm';
 import type { ClefChange, Direction, MeasureMeta, Note, Part, Score } from '../model/types';
-import { add, cmp, frac, lt, sub, ZERO, type Fraction } from '../theory/fraction';
+import { add, cmp, lt, sub, ZERO, type Fraction } from '../theory/fraction';
 import { AlterOverflowError, intervalBetween, transposePitch, type Interval } from '../theory/interval';
 import {
   chooseKey,
@@ -194,9 +195,6 @@ export type DuplicateOptions = {
   extractMelody?: boolean;
 };
 
-let seq = 0;
-const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${(seq++).toString(36)}`;
-
 export function duplicatePartAs(score: Score, opts: DuplicateOptions): { score: Score; partId: string } {
   const source = score.parts.find((p) => p.id === opts.sourcePartId);
   if (!source) throw new Error(`パート ${opts.sourcePartId} がありません`);
@@ -281,7 +279,7 @@ export function extractMelody(notes: Note[], staff: number): Note[] {
       const next = sorted[i + 1]?.onset;
       let duration = n.duration;
       if (next && lt(next, add(n.onset, n.duration))) duration = sub(next, n.onset);
-      if (cmp(n.onset, cursor) > 0) out.push(...rests(n, cursor, sub(n.onset, cursor)));
+      if (cmp(n.onset, cursor) > 0) out.push(...makeRests({ ...n, voice: 1 }, cursor, sub(n.onset, cursor)));
       // 選んだ音の直前の装飾音（同じ声部）も残す
       for (const g of graces) {
         if (g.measure === n.measure && g.voice === n.voice && cmp(g.onset, n.onset) === 0)
@@ -293,7 +291,8 @@ export function extractMelody(notes: Note[], staff: number): Note[] {
       else out.push(...splitNote(base, n.onset, duration));
       cursor = add(n.onset, duration);
     });
-    if (sorted.length && lt(cursor, measureEnd)) out.push(...rests(sorted[0], cursor, sub(measureEnd, cursor)));
+    if (sorted.length && lt(cursor, measureEnd))
+      out.push(...makeRests({ ...sorted[0], voice: 1 }, cursor, sub(measureEnd, cursor)));
     if (!sorted.length && list.length) {
       out.push({
         ...list[0],
@@ -307,20 +306,6 @@ export function extractMelody(notes: Note[], staff: number): Note[] {
     }
   }
   fixTies(out);
-  return out;
-}
-
-/** 書き表せる長さ（付点なし・1つ付点）に分ける。長い方から */
-function splitDuration(d: Fraction): Fraction[] {
-  const values = [1, 2, 4, 8, 16, 32, 64].flatMap((den) => [frac(3, den * 2), frac(1, den)]);
-  const out: Fraction[] = [];
-  let rest = d;
-  for (const v of values) {
-    while (cmp(rest, v) >= 0) {
-      out.push(v);
-      rest = sub(rest, v);
-    }
-  }
   return out;
 }
 
@@ -377,27 +362,3 @@ function fixTies(notes: Note[]) {
 }
 
 const top = (n: Note) => Math.max(...n.heads.map((h) => midi(h.pitch)));
-
-function rests(like: Note, onset: Fraction, duration: Fraction): Note[] {
-  let pos = onset;
-  return splitDuration(duration).map((d) => {
-    const r = rest(like, pos, d);
-    pos = add(pos, d);
-    return r;
-  });
-}
-
-function rest(like: Note, onset: Fraction, duration: Fraction): Note {
-  return {
-    id: `${like.id}-r${onset.num}-${onset.den}`,
-    partId: like.partId,
-    measure: like.measure,
-    staff: like.staff,
-    voice: 1,
-    onset,
-    duration,
-    heads: [],
-    articulations: [],
-    origin: 'generated',
-  };
-}
