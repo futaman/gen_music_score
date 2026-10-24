@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ImportResult } from '../core/musicxml/file';
 import { ImportSummary } from './ImportSummary';
+import { ScoreScreen } from './ScoreScreen';
 import { importInWorker } from './importScore';
 
 type State =
@@ -12,6 +13,7 @@ type State =
 export function App() {
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [over, setOver] = useState(false);
+  const [viewing, setViewing] = useState(false);
 
   async function open(file: File) {
     setState({ kind: 'loading', fileName: file.name });
@@ -22,6 +24,10 @@ export function App() {
         ? { kind: 'loaded', fileName: file.name, result: res.result, ms: res.ms }
         : { kind: 'error', fileName: file.name, message: res.message },
     );
+  }
+
+  if (viewing && state.kind === 'loaded') {
+    return <ScoreScreen score={state.result.score} onBack={() => setViewing(false)} />;
   }
 
   return (
@@ -61,7 +67,9 @@ export function App() {
           {state.fileName}：{state.message}
         </div>
       )}
-      {state.kind === 'loaded' && <ImportSummary fileName={state.fileName} result={state.result} ms={state.ms} />}
+      {state.kind === 'loaded' && (
+        <ImportSummary fileName={state.fileName} result={state.result} ms={state.ms} onOpen={() => setViewing(true)} />
+      )}
     </div>
   );
 }

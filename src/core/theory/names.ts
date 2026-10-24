@@ -28,3 +28,21 @@ export function transpositionName(t: Interval | null): string {
   const abs = { diatonic: Math.abs(t.diatonic), chromatic: Math.abs(t.chromatic) };
   return `記譜の${intervalName(abs)}${down ? '下' : '上'}が鳴る`;
 }
+
+export type NoteNameStyle = 'doremi' | 'english' | 'german';
+
+const DOREMI: Record<string, string> = { C: 'ド', D: 'レ', E: 'ミ', F: 'ファ', G: 'ソ', A: 'ラ', B: 'シ' };
+const SIGN = ['𝄫', '♭', '', '♯', '𝄪'];
+
+/** 音名：固定ド（ド♯）／英語（C♯）／ドイツ語（Cis、B＝変ロ、H＝ロ） */
+export function noteName(p: { step: string; alter: number }, style: NoteNameStyle): string {
+  if (style === 'doremi') return DOREMI[p.step] + SIGN[p.alter + 2];
+  if (style === 'english') return p.step + SIGN[p.alter + 2];
+  // ドイツ語
+  if (p.step === 'B') return ['Heses', 'B', 'H', 'His', 'Hisis'][p.alter + 2];
+  const base = p.step;
+  if (p.alter === 0) return base;
+  const vowel = base === 'E' || base === 'A';
+  if (p.alter < 0) return base + (vowel ? 's' : 'es') + (p.alter === -2 ? 'es' : '');
+  return base + 'is' + (p.alter === 2 ? 'is' : '');
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { add, cmp, frac, fromDivisions, toDivisions } from './fraction';
 import { formatInterval, intervalBetween, invert, parseInterval, transposePitch, withDirection } from './interval';
 import { fifthsOfTonic, keyAlterations, normalizeKey, simplestKey, tonicOf, transposeKey } from './key';
-import { intervalName, keyName, transpositionName } from './names';
+import { intervalName, keyName, noteName, transpositionName } from './names';
 import { formatPitch, midi, parsePitch, simplifyEnharmonic, STEPS, type Pitch } from './pitch';
 
 const P = parsePitch;
@@ -134,5 +134,28 @@ describe('画面に出す名前', () => {
     expect(transpositionName({ diatonic: -1, chromatic: -2 })).toBe('記譜の長2度下が鳴る');
     expect(transpositionName({ diatonic: 7, chromatic: 12 })).toBe('記譜の完全8度上が鳴る');
     expect(transpositionName(null)).toBe('記譜どおり');
+  });
+});
+
+describe('音名', () => {
+  it('固定ド・英語・ドイツ語', () => {
+    expect(noteName({ step: 'F', alter: 1 }, 'doremi')).toBe('ファ♯');
+    expect(noteName({ step: 'B', alter: -1 }, 'english')).toBe('B♭');
+    expect(['C', 'Cis', 'Es', 'As', 'B', 'H', 'Fis', 'Eses', 'Ases', 'Ces'].join()).toBe(
+      [
+        { step: 'C', alter: 0 },
+        { step: 'C', alter: 1 },
+        { step: 'E', alter: -1 },
+        { step: 'A', alter: -1 },
+        { step: 'B', alter: -1 },
+        { step: 'B', alter: 0 },
+        { step: 'F', alter: 1 },
+        { step: 'E', alter: -2 },
+        { step: 'A', alter: -2 },
+        { step: 'C', alter: -1 },
+      ]
+        .map((p) => noteName(p, 'german'))
+        .join(),
+    );
   });
 });

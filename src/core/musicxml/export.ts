@@ -3,11 +3,9 @@
 
 import { getInstrument, partTransposition } from '../instruments';
 import { notationFor, tupletRatio } from '../model/notation';
+import { planAccidentals, writtenKey, writtenPitch } from '../model/display';
 import type { ClefChange, Direction, MeasureMeta, Note, NoteHead, Part, Score, Transposition } from '../model/types';
 import { add, cmp, eq, frac, isZero, lcm, sub, toDivisions, ZERO, type Fraction } from '../theory/fraction';
-import { AlterOverflowError, invert, transposePitch } from '../theory/interval';
-import { keyAlterations, normalizeKey, transposeKey } from '../theory/key';
-import { simplifyEnharmonic, type Pitch } from '../theory/pitch';
 import { el, prettyXml, serializeNode } from './xml';
 
 export type ExportOptions = { software?: string; date?: string };
@@ -120,16 +118,6 @@ const ACCIDENTAL_NAMES: Record<number, string> = {
   2: 'double-sharp',
 };
 
-function writtenPitch(p: Pitch, t: Transposition | null): Pitch {
-  if (!t) return p;
-  try {
-    return transposePitch(p, invert(t));
-  } catch (e) {
-    if (e instanceof AlterOverflowError) return simplifyEnharmonic(transposePitch(simplifyEnharmonic(p), invert(t)));
-    throw e;
-  }
-}
-
 function writePart(
   score: Score,
   part: Part,
@@ -168,7 +156,7 @@ function writePart(
 
   score.measures.forEach((meta, mi) => {
     if (meta.key) concertKey = meta.key;
-    const writtenKey = t && !def.unpitched ? normalizeKey(transposeKey(concertKey, invert(t))) : concertKey;
+    const writtenKeyNow = t && !def.unpitched ? writtenKey(concertKey, t) : concertKey;
     const body: string[] = [];
     let cursor: Fraction = ZERO;
     const moveTo = (target: Fraction) => {
@@ -184,8 +172,8 @@ function writePart(
     const headClefs = mClefs.filter((c) => isZero(c.onset));
     if (mi === 0) attrs.push(el('divisions', {}, divisions));
     if (meta.key || mi === 0) {
-      const k = [el('fifths', {}, writtenKey.fifths)];
-      if (writtenKey.mode) k.push(el('mode', {}, writtenKey.mode));
+      const k = [el('fifths', {}, writtenKeyNow.fifths)];
+      if (writtenKeyNow.mode) k.push(el('mode', {}, writtenKeyNow.mode));
       attrs.push(el('key', {}, k));
     }
     if (meta.time) {
@@ -246,7 +234,7 @@ function writePart(
       const [sb, vb] = b.split('/').map(Number);
       return sa - sb || va - vb;
     });
-    const accidentals = accidentalPlanner(mNotes, writtenKey.fifths, t);
+    const accidentals = planAccidentals(mNotes, writtenKeyNow.fifths, (p) => writtenPitch(p, t));
 
     voiceKeys.forEach((vk, vi) => {
       const vNotes = voices
@@ -406,37 +394,11 @@ function dynamicChildren(value: string): string[] {
   return STANDARD_DYNAMICS.has(value) ? [el(value)] : [el('other-dynamics', {}, value)];
 }
 
-/** 小節内で必要な臨時記号を決める（調号と、同じ小節で前に出た臨時記号を考える） */
-function accidentalPlanner(notes: Note[], writtenFifths: number, t: Transposition | null): Map<string, string | null> {
-  const result = new Map<string, string | null>();
-  const keyAlt = keyAlterations(writtenFifths);
-  const byStaff = groupBy(notes, (n) => String(n.staff));
-  for (const staffNotes of byStaff.values()) {
-    const sorted = staffNotes.slice().sort((a, b) => cmp(a.onset, b.onset) || Number(!a.grace) - Number(!b.grace));
-    const state = new Map<string, number>(); // 'C4' → 有効な変化
-    for (const n of sorted) {
-      for (const h of n.heads) {
-        if (h.unpitched) continue;
-        const w = writtenPitch(h.pitch, t);
-        const slot = `${w.step}${w.octave}`;
-        const current = state.get(slot) ?? keyAlt[w.step];
-        let need = w.alter !== current;
-        // 前の小節からタイでつながった音には付けない
-        if (h.tie?.stop && !state.has(slot) && isZero(n.onset)) need = false;
-        state.set(slot, w.alter);
-        if (h.accidentalShown === 'courtesy' || h.accidentalShown === 'paren') need = true;
-        result.set(h.id, need ? ACCIDENTAL_NAMES[w.alter] : null);
-      }
-    }
-  }
-  return result;
-}
-
 function noteXml(
   n: Note,
   t: Transposition | null,
   dur: (f: Fraction) => number,
-  accidentals: Map<string, string | null>,
+  accidentals: Map<string, number | null>,
   slurNumbers: Map<string, number>,
   usedSlurNumbers: Set<number>,
 ): string {
@@ -464,7 +426,8 @@ function noteXml(
       c.push(el('voice', {}, n.voice));
       if (!n.measureRest || n.notation) c.push(el('type', {}, notation.type));
       for (let i = 0; i < notation.dots; i++) c.push(el('dot'));
-      const acc = h ? accidentals.get(h.id) : null;
+      const accAlter = h ? accidentals.get(h.id) : null;
+      const acc = accAlter === null || accAlter === undefined ? null : ACCIDENTAL_NAMES[accAlter];
       if (acc && h) {
         const a: Record<string, string> = {};
         if (h.accidentalShown === 'courtesy') a.cautionary = 'yes';

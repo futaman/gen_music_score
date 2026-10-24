@@ -3,10 +3,10 @@ import { exportMusicXml } from '../core/musicxml/export';
 import type { ImportResult } from '../core/musicxml/file';
 import { keyName, transpositionName } from '../core/theory/names';
 
-type Props = { fileName: string; result: ImportResult; ms: number };
+type Props = { fileName: string; result: ImportResult; ms: number; onOpen: () => void };
 
 /** 読み込み確認：パート・楽器・調号・拍子・小節数と、警告・無視した要素の一覧 */
-export function ImportSummary({ fileName, result, ms }: Props) {
+export function ImportSummary({ fileName, result, ms, onOpen }: Props) {
   const { score, warnings, ignored, software } = result;
   const first = score.measures[0];
   const keyChanges = score.measures.filter((m, i) => i > 0 && m.key).length;
@@ -54,6 +54,14 @@ export function ImportSummary({ fileName, result, ms }: Props) {
         <dd>{software ?? '—'}</dd>
       </dl>
       <p className="muted">読み込み時間 {Math.round(ms)}ms</p>
+      <div className="actions">
+        <button className="button primary" onClick={onOpen}>
+          楽譜を開く
+        </button>
+        <button className="button" onClick={download}>
+          MusicXMLとして書き出す
+        </button>
+      </div>
 
       <h2>パート（{score.parts.length}）</h2>
       <div className="table-wrap">
@@ -117,12 +125,6 @@ export function ImportSummary({ fileName, result, ms }: Props) {
           </ul>
         </details>
       )}
-
-      <div className="actions">
-        <button className="button" onClick={download}>
-          MusicXMLとして書き出す
-        </button>
-      </div>
     </section>
   );
 }

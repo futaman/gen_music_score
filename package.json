@@ -22,7 +22,8 @@
     "fflate": "^0.8.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "txml": "^6.0.3"
+    "txml": "^6.0.3",
+    "verovio": "^6.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
