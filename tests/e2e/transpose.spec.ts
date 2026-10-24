@@ -15,7 +15,8 @@ const keyAccidentals = (page: Page) =>
 
 test('完了条件：イ長調の曲を B♭ へ移調し、B♭クラのパートを作ると Cメジャーで表示される', async ({ page }) => {
   await openScore(page, 'mozart-k464-1-allegro.mxl');
-  expect(await keyAccidentals(page)).toBe(3);
+  // 最初のチャンクは段の切れ目に合わせて描き直されることがあるので、落ち着くまで待つ
+  await expect.poll(() => keyAccidentals(page)).toBe(3);
 
   // モードA：B♭メジャーへ（上げる）
   await page.getByRole('button', { name: '移調', exact: true }).click();
