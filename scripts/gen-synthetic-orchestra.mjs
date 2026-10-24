@@ -24,16 +24,29 @@ const PARTS = [
   ['vn2', 'Violin 2', 'G2', 60, 84],
   ['va', 'Viola', 'C3', 53, 74],
   ['vc', 'Violoncello', 'F4', 36, 62],
-  ['cb', 'Contrabass', 'F4', 28, 50, [0, -12]],
+  ['cb', 'Contrabass', 'F4', 28, 50, [-7, -12]],
 ];
 
 let seed = 5;
-const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+const rand = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
 const pick = (a) => a[Math.floor(rand() * a.length)];
 
 // ハ短調の音階（実音）。変化音は♭で綴る
 const SCALE_PC = [0, 2, 3, 5, 7, 8, 10, 11];
-const NAMES = { 0: ['C', 0], 1: ['D', -1], 2: ['D', 0], 3: ['E', -1], 4: ['E', 0], 5: ['F', 0], 6: ['G', -1], 7: ['G', 0], 8: ['A', -1], 9: ['A', 0], 10: ['B', -1], 11: ['B', 0] };
+const NAMES = {
+  0: ['C', 0],
+  1: ['D', -1],
+  2: ['D', 0],
+  3: ['E', -1],
+  4: ['E', 0],
+  5: ['F', 0],
+  6: ['G', -1],
+  7: ['G', 0],
+  8: ['A', -1],
+  9: ['A', 0],
+  10: ['B', -1],
+  11: ['B', 0],
+};
 
 function spell(midi) {
   const [step, alter] = NAMES[((midi % 12) + 12) % 12];
@@ -49,15 +62,14 @@ function randomPitch(lo, hi) {
 }
 
 // 1小節（2/4 = 8 divisions）のリズム型
-const RHYTHMS = [
-  [2, 2, 2, 2],
-  [4, 4],
-  [8],
-  [2, 2, 4],
-  [1, 1, 1, 1, 2, 2],
-  [3, 1, 4],
-];
-const TYPE = { 1: ['16th', false], 2: ['eighth', false], 3: ['eighth', true], 4: ['quarter', false], 8: ['half', false] };
+const RHYTHMS = [[2, 2, 2, 2], [4, 4], [8], [2, 2, 4], [1, 1, 1, 1, 2, 2], [3, 1, 4]];
+const TYPE = {
+  1: ['16th', false],
+  2: ['eighth', false],
+  3: ['eighth', true],
+  4: ['quarter', false],
+  8: ['half', false],
+};
 
 function noteXml({ midi, dur, transpose, chord = false, tie, rest = false }) {
   const [type, dot] = TYPE[dur];
@@ -83,10 +95,14 @@ function noteXml({ midi, dur, transpose, chord = false, tie, rest = false }) {
 
 const out = [];
 out.push('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
-out.push('<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">');
+out.push(
+  '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
+);
 out.push('<score-partwise version="4.0">');
 out.push(`<work><work-title>Synthetic Orchestra ${MEASURES}</work-title></work>`);
-out.push('<identification><creator type="composer">gen-synthetic-orchestra.mjs</creator><encoding><software>gen-synthetic-orchestra.mjs</software></encoding></identification>');
+out.push(
+  '<identification><creator type="composer">gen-synthetic-orchestra.mjs</creator><encoding><software>gen-synthetic-orchestra.mjs</software></encoding></identification>',
+);
 out.push('<part-list>');
 for (const [id, name] of PARTS) out.push(`<score-part id="${id}"><part-name>${name}</part-name></score-part>`);
 out.push('</part-list>');
@@ -101,9 +117,11 @@ for (const [id, , clef, lo, hi, transpose] of PARTS) {
       const fifths = transpose ? -3 - Math.round((transpose[1] * 7) % 12) : -3;
       x += `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${transpose ? normFifths(fifths) : -3}</fifths><mode>minor</mode></key>`;
       x += `<time><beats>2</beats><beat-type>4</beat-type></time><clef><sign>${sign}</sign><line>${line}</line></clef>`;
-      if (transpose) x += `<transpose><diatonic>${transpose[0]}</diatonic><chromatic>${transpose[1]}</chromatic></transpose>`;
+      if (transpose)
+        x += `<transpose><diatonic>${transpose[0]}</diatonic><chromatic>${transpose[1]}</chromatic></transpose>`;
       x += '</attributes>';
-      x += '<direction placement="above"><direction-type><words>Allegro con brio</words></direction-type><sound tempo="108"/></direction>';
+      x +=
+        '<direction placement="above"><direction-type><words>Allegro con brio</words></direction-type><sound tempo="108"/></direction>';
     }
     if (m % 8 === 1 && rand() < 0.5) {
       x += `<direction placement="below"><direction-type><dynamics><${pick(['p', 'f', 'ff', 'mf'])}/></dynamics></direction-type></direction>`;
