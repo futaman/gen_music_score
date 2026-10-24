@@ -6,6 +6,7 @@ type Props = {
   settings: DisplaySettings;
   update: (patch: Partial<DisplaySettings>) => void;
   reset: () => void;
+  onDownload: () => void;
   onClose: () => void;
 };
 
@@ -40,7 +41,7 @@ function Choice<K extends keyof DisplaySettings>(props: {
 }
 
 /** 表示オプション（設定パネル） */
-export function SettingsPanel({ score, settings, update, reset, onClose }: Props) {
+export function SettingsPanel({ score, settings, update, reset, onDownload, onClose }: Props) {
   const zoomValue = settings.zoom === 'fit' ? 100 : settings.zoom;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -180,6 +181,16 @@ export function SettingsPanel({ score, settings, update, reset, onClose }: Props
           onChange={(v) => update({ hornKeySignature: v as DisplaySettings['hornKeySignature'] })}
         />
         <Choice
+          label="警告ハイライト"
+          name="warnings"
+          value={settings.warnings ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: '表示' },
+            { value: 'off', label: '非表示' },
+          ]}
+          onChange={(v) => update({ warnings: v === 'on' })}
+        />
+        <Choice
           label="再生中の追従"
           name="follow"
           value={settings.follow ? 'on' : 'off'}
@@ -200,12 +211,16 @@ export function SettingsPanel({ score, settings, update, reset, onClose }: Props
           ]}
           onChange={(v) => update({ theme: v as DisplaySettings['theme'] })}
         />
-        <p className="muted">
-          警告のハイライト・手直しした音の印・編曲元パートごとの色分けは、それぞれの機能を作るときに足します。
-        </p>
+        <p className="muted">手直しした音の印・編曲元パートごとの色分けは、それぞれの機能を作るときに足します。</p>
         <div className="actions">
           <button className="button" onClick={reset}>
             既定に戻す
+          </button>
+        </div>
+        <h3>書き出し</h3>
+        <div className="actions">
+          <button className="button" onClick={onDownload}>
+            MusicXMLとして書き出す
           </button>
         </div>
       </section>

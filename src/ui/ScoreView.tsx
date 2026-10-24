@@ -7,6 +7,7 @@ import type { Device, DisplaySettings } from './settings';
 
 const BASE_SCALE: Record<Device, number> = { pc: 38, tablet: 34, phone: 28 };
 // 楽器ごとの色（明るい背景・暗い背景のどちらでも読める濃さ）
+const WARN_COLOR = '#d70015';
 const PART_COLORS = ['#1f6fd1', '#c2410c', '#15803d', '#9333ea', '#b91c1c', '#0e7490', '#a16207', '#be185d'];
 
 export function visiblePartIds(score: Score, s: DisplaySettings): string[] {
@@ -28,10 +29,23 @@ type Props = {
   onMeasureTap?: (measure: number) => void;
   /** ピンチで拡大率を変えたとき（50〜200） */
   onZoom?: (zoom: number) => void;
+  /** 赤く表示する音（音域外など） */
+  warnHeads?: Set<string>;
+  /** 楽譜が変わるたびに増える番号（変わったら描き直す） */
+  revision?: number;
 };
 
 /** 楽譜の表示。数小節ずつのチャンクに分け、画面に近いものだけを描く */
-export function ScoreView({ index, settings, device, containerRef, onMeasureTap, onZoom }: Props) {
+export function ScoreView({
+  index,
+  settings,
+  device,
+  containerRef,
+  onMeasureTap,
+  onZoom,
+  warnHeads,
+  revision = 0,
+}: Props) {
   const renderer = useMemo(() => new Renderer(), []);
   useEffect(() => () => renderer.dispose(), [renderer]);
   const ownRef = useRef<HTMLDivElement>(null);
@@ -71,8 +85,13 @@ export function ScoreView({ index, settings, device, containerRef, onMeasureTap,
       settings.colorBy === 'instrument'
         ? Object.fromEntries(score.parts.map((p, i) => [p.id, PART_COLORS[i % PART_COLORS.length]]))
         : undefined;
+    const headColors =
+      settings.warnings && warnHeads?.size
+        ? Object.fromEntries([...warnHeads].map((id) => [id, WARN_COLOR]))
+        : undefined;
     return {
       partIds,
+      headColors,
       pitchMode: settings.pitchMode,
       noteNames: settings.noteNames === 'none' ? undefined : settings.noteNames,
       colors,
@@ -81,7 +100,16 @@ export function ScoreView({ index, settings, device, containerRef, onMeasureTap,
           ? score.parts.filter((p) => p.instrumentId.startsWith('horn')).map((p) => p.id)
           : [],
     };
-  }, [partIds, score.parts, settings.colorBy, settings.hornKeySignature, settings.noteNames, settings.pitchMode]);
+  }, [
+    partIds,
+    score.parts,
+    settings.colorBy,
+    settings.hornKeySignature,
+    settings.noteNames,
+    settings.pitchMode,
+    settings.warnings,
+    warnHeads,
+  ]);
 
   // 設定が変わったら全チャンクを作り直す
   const version = useMemo(() => JSON.stringify([verovioOptions, chunkOptions]), [verovioOptions, chunkOptions]);
@@ -120,7 +148,7 @@ export function ScoreView({ index, settings, device, containerRef, onMeasureTap,
       {width > 0 &&
         chunks.map((c) => (
           <Chunk
-            key={`${version}-${size}-${c.start}`}
+            key={`${version}-${size}-${revision}-${c.start}`}
             index={index}
             renderer={renderer}
             options={{ ...chunkOptions, ...c, labels: c.start === 0 ? 'full' : 'abbr' }}

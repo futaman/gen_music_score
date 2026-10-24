@@ -28,7 +28,7 @@ export function App() {
   }
 
   if (viewing && state.kind === 'loaded') {
-    return <ScoreScreen score={state.result.score} onBack={() => setViewing(false)} />;
+    return <ScoreScreen score={state.result.score} fileName={state.fileName} onBack={() => setViewing(false)} />;
   }
 
   return (

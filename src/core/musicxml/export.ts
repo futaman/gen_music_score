@@ -3,7 +3,8 @@
 
 import { getInstrument, partTransposition } from '../instruments';
 import { notationFor, tupletRatio } from '../model/notation';
-import { planAccidentals, writtenKey, writtenPitch } from '../model/display';
+import { planAccidentals, spellWith, writtenSpelling } from '../model/display';
+import type { Interval } from '../theory/interval';
 import type { ClefChange, Direction, MeasureMeta, Note, NoteHead, Part, Score, Transposition } from '../model/types';
 import { add, cmp, eq, frac, isZero, lcm, sub, toDivisions, ZERO, type Fraction } from '../theory/fraction';
 import { el, prettyXml, serializeNode } from './xml';
@@ -156,7 +157,11 @@ function writePart(
 
   score.measures.forEach((meta, mi) => {
     if (meta.key) concertKey = meta.key;
-    const writtenKeyNow = t && !def.unpitched ? writtenKey(concertKey, t) : concertKey;
+    const spelling =
+      t && !def.unpitched
+        ? writtenSpelling(concertKey, t, part.keySignatureFlavor ?? 'auto')
+        : { key: concertKey, interval: null };
+    const writtenKeyNow = spelling.key;
     const body: string[] = [];
     let cursor: Fraction = ZERO;
     const moveTo = (target: Fraction) => {
@@ -234,7 +239,7 @@ function writePart(
       const [sb, vb] = b.split('/').map(Number);
       return sa - sb || va - vb;
     });
-    const accidentals = planAccidentals(mNotes, writtenKeyNow.fifths, (p) => writtenPitch(p, t));
+    const accidentals = planAccidentals(mNotes, writtenKeyNow.fifths, (p) => spellWith(p, spelling.interval));
 
     voiceKeys.forEach((vk, vi) => {
       const vNotes = voices
@@ -245,7 +250,7 @@ function writePart(
       for (const n of vNotes) {
         if (vi === 0) flushEvents(n.onset);
         moveTo(n.onset);
-        body.push(noteXml(n, t, dur, accidentals, slurNumbers, usedSlurNumbers));
+        body.push(noteXml(n, spelling.interval, dur, accidentals, slurNumbers, usedSlurNumbers));
         if (!n.grace) cursor = add(n.onset, n.duration);
       }
     });
@@ -396,7 +401,7 @@ function dynamicChildren(value: string): string[] {
 
 function noteXml(
   n: Note,
-  t: Transposition | null,
+  toWritten: Interval | null, // 実音 → 記譜音
   dur: (f: Fraction) => number,
   accidentals: Map<string, number | null>,
   slurNumbers: Map<string, number>,
@@ -414,7 +419,7 @@ function noteXml(
       else if (h.unpitched)
         c.push(el('unpitched', {}, [el('display-step', {}, h.pitch.step), el('display-octave', {}, h.pitch.octave)]));
       else {
-        const w = writtenPitch(h.pitch, t);
+        const w = spellWith(h.pitch, toWritten);
         const p = [el('step', {}, w.step)];
         if (w.alter) p.push(el('alter', {}, w.alter));
         p.push(el('octave', {}, w.octave));

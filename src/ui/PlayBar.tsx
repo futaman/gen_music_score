@@ -8,13 +8,15 @@ type Props = {
   measureLabel: string;
   startLabel?: string;
   onPlay: () => void;
+  /** 再生バーに並べるほかのボタン（音域外の警告など） */
+  extra?: React.ReactNode;
 };
 
 const isIOS = () =>
   /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 /** 画面下に固定する再生バー */
-export function PlayBar({ player, score, measureLabel, startLabel, onPlay }: Props) {
+export function PlayBar({ player, score, measureLabel, startLabel, onPlay, extra }: Props) {
   const [mixer, setMixer] = useState(false);
   const [hint, setHint] = useState(false);
   const playing = player.state === 'playing';
@@ -47,6 +49,7 @@ export function PlayBar({ player, score, measureLabel, startLabel, onPlay }: Pro
               : measureLabel}
         </span>
         <Tempo player={player} />
+        {extra}
         <button className="button" onClick={() => setMixer(true)}>
           {/* スマホでは、テンポもこの画面で変える */}
           パート

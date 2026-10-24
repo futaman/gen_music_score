@@ -499,3 +499,64 @@ select {
 a {
   color: var(--accent);
 }
+
+/* ---- 移調・音域 ---- */
+.sheet h3 {
+  font-size: 15px;
+  margin: 24px 0 8px;
+}
+.indent {
+  margin-left: 28px;
+}
+.measure-input {
+  width: 4.5em;
+  min-height: 44px;
+  font: inherit;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+}
+.warn-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: none;
+  background: var(--error);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.warn-short,
+.device-phone .warn-long {
+  display: none;
+}
+.device-phone .warn-short {
+  display: inline;
+}
+.issues {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.issues li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.link {
+  min-height: 44px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+}

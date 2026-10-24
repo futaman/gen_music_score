@@ -3,7 +3,7 @@
 //（docs/decisions/0001-renderer.md）。
 
 import { getInstrument, partTransposition } from '../instruments';
-import { planAccidentals, writtenKey, writtenPitch, type PitchMode } from '../model/display';
+import { planAccidentals, spellWith, writtenSpelling, type PitchMode } from '../model/display';
 import { autoBeamGroups } from '../model/beaming';
 import { notationFor, NOTE_TYPE_VALUES, tupletRatio } from '../model/notation';
 import { clefAt, type ScoreIndex } from '../model/scoreIndex';
@@ -25,6 +25,8 @@ export type ChunkOptions = {
   noteNames?: NoteNameStyle;
   /** パートごとの色（partId → CSSの色） */
   colors?: Record<string, string>;
+  /** 音ごとの色（NoteHead.id → CSSの色）。音域外の警告など。パートの色より優先 */
+  headColors?: Record<string, string>;
   /** 調号を書かず臨時記号で書くパート（ホルンの慣習。記譜音で表示するときだけ） */
   noKeySignatureParts?: string[];
 };
@@ -126,14 +128,22 @@ class MeiWriter {
     private staves: StaffInfo[],
   ) {}
 
+  /** いま書いている小節（記譜音の綴りはその小節の調で決まる） */
+  private mi = 0;
+
+  private spelling(s: StaffInfo, concert: Key) {
+    return writtenSpelling(concert, s.t, s.part.keySignatureFlavor ?? 'auto');
+  }
+
   private pitchOf(s: StaffInfo, p: Pitch): Pitch {
-    return this.opts.pitchMode === 'written' && !s.unpitched ? writtenPitch(p, s.t) : p;
+    if (this.opts.pitchMode !== 'written' || s.unpitched) return p;
+    return spellWith(p, this.spelling(s, this.index.keyAt[this.mi]).interval);
   }
 
   private keyOf(s: StaffInfo, concert: Key): number {
     if (s.unpitched) return 0;
     if (this.opts.pitchMode === 'written' && this.opts.noKeySignatureParts?.includes(s.part.id)) return 0;
-    return this.opts.pitchMode === 'written' ? writtenKey(concert, s.t).fifths : concert.fifths;
+    return this.opts.pitchMode === 'written' ? this.spelling(s, concert).key.fifths : concert.fifths;
   }
 
   private clefAttrs(c: ClefChange | undefined, prefix: 'clef.' | ''): Record<string, string | number | undefined> {
@@ -193,7 +203,9 @@ class MeiWriter {
   private labelXml(part: Part, label: string): string {
     const def = getInstrument(part.instrumentId);
     const abbr = part.abbr || def.abbr || label;
-    return tag('label', {}, escapeXml(label)) + tag('labelAbbr', {}, escapeXml(abbr));
+    // Verovio は日本語の文字幅を狭く見積もり、段の左で切れてしまうので、日本語の名前は略称にする
+    const full = /[^\u0020-\u007E♭♯]/.test(label) ? abbr : label;
+    return tag('label', {}, escapeXml(full)) + tag('labelAbbr', {}, escapeXml(abbr));
   }
 
   private label(part: Part): string {
@@ -216,6 +228,7 @@ class MeiWriter {
   }
 
   measure(mi: number): string {
+    this.mi = mi;
     const { score } = this.index;
     const meta = score.measures[mi];
     const attrs: Record<string, string | undefined> = { 'xml:id': `m${mi}`, n: meta.displayNumber };
@@ -412,6 +425,8 @@ class MeiWriter {
       }
       if (withDur && tremolo) a['stem.mod'] = `${tremolo}slash`;
       if (!withDur && color) a.color = color;
+      const warn = this.opts.headColors?.[h.id];
+      if (warn) a.color = warn;
       if (withDur) inner += articXml;
       if (h === named && !n.grace)
         inner += tag('verse', { n: 1 }, tag('syl', {}, escapeXml(noteName(p, this.opts.noteNames!))));

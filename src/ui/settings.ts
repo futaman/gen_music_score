@@ -18,6 +18,7 @@ export type DisplaySettings = {
   follow: boolean; // 再生中に自動スクロール
   theme: 'system' | 'light' | 'dark';
   hornKeySignature: 'with' | 'without';
+  warnings: boolean; // 警告ハイライト（音域外の音を赤く）
 };
 
 export function defaultSettings(device: Device): DisplaySettings {
@@ -32,6 +33,7 @@ export function defaultSettings(device: Device): DisplaySettings {
     follow: true,
     theme: 'system',
     hornKeySignature: 'with',
+    warnings: true,
   };
 }
 

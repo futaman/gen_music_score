@@ -1,27 +1,48 @@
 // 表示・書き出し用の変換：実音 ⇔ 記譜音、臨時記号を付けるかどうか。
 
 import { cmp, isZero } from '../theory/fraction';
-import { AlterOverflowError, invert, transposePitch } from '../theory/interval';
-import { keyAlterations, normalizeKey, transposeKey, type Key } from '../theory/key';
+import { AlterOverflowError, invert, transposePitch, type Interval } from '../theory/interval';
+import { chooseKey, keyAlterations, respellInterval, transposeKey, type Key, type KeyFlavor } from '../theory/key';
 import { simplifyEnharmonic, type Alter, type Pitch } from '../theory/pitch';
 import type { Note, Transposition } from './types';
 
 export type PitchMode = 'concert' | 'written';
 
-/** 実音 → 記譜音（移調楽器でなければそのまま） */
-export function writtenPitch(p: Pitch, t: Transposition | null): Pitch {
-  if (!t) return p;
+/** 音程どおりに綴る。変化記号が ±2 を超えるときは異名同音にする */
+export function spellWith(p: Pitch, iv: Interval | null): Pitch {
+  if (!iv) return p;
   try {
-    return transposePitch(p, invert(t));
+    return transposePitch(p, iv);
   } catch (e) {
-    if (e instanceof AlterOverflowError) return simplifyEnharmonic(transposePitch(simplifyEnharmonic(p), invert(t)));
+    if (e instanceof AlterOverflowError) return simplifyEnharmonic(transposePitch(simplifyEnharmonic(p), iv));
     throw e;
   }
 }
 
+/** 実音 → 記譜音（移調楽器でなければそのまま。調号の書き換えは考えない） */
+export function writtenPitch(p: Pitch, t: Transposition | null): Pitch {
+  return spellWith(p, t ? invert(t) : null);
+}
+
+/**
+ * 移調楽器の記譜：その区間の実音の調から、記譜の調号と「実音 → 記譜音」の音程を決める。
+ * 調号は flavor（パートごとの設定。既定は記号の少ない方、同数なら♯系）で選び、音の綴りもそれに合わせる。
+ */
+export function writtenSpelling(
+  concert: Key,
+  t: Transposition | null,
+  flavor: KeyFlavor = 'auto',
+): { key: Key; interval: Interval | null } {
+  if (!t) return { key: concert, interval: null };
+  const toWritten = invert(t);
+  const raw = transposeKey(concert, toWritten);
+  const key = chooseKey(raw, flavor);
+  return { key, interval: respellInterval(toWritten, raw.fifths, key.fifths) };
+}
+
 /** 実音の調 → 記譜の調 */
-export function writtenKey(concert: Key, t: Transposition | null): Key {
-  return t ? normalizeKey(transposeKey(concert, invert(t))) : concert;
+export function writtenKey(concert: Key, t: Transposition | null, flavor: KeyFlavor = 'auto'): Key {
+  return writtenSpelling(concert, t, flavor).key;
 }
 
 /**

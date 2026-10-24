@@ -67,3 +67,27 @@ export function simplestKey(key: Key, prefer: 'sharp' | 'flat' = 'sharp'): Key {
   }
   return { ...key, fifths: n };
 }
+
+export type KeyFlavor = 'auto' | 'sharp' | 'flat';
+
+/**
+ * 調号を♯系・♭系のどちらで書くか決める。
+ * auto：記号の少ない方（同数なら♯系）。sharp / flat：その系統で書ける（7つ以内）ならそちら。
+ */
+export function chooseKey(key: Key, flavor: KeyFlavor): Key {
+  const n = normalizeKey(key);
+  if (flavor === 'auto') return simplestKey(n, 'sharp');
+  const other = n.fifths > 0 ? n.fifths - 12 : n.fifths < 0 ? n.fifths + 12 : 0;
+  const wantSharp = flavor === 'sharp';
+  if (wantSharp && n.fifths < 0 && other <= 7) return { ...n, fifths: other };
+  if (!wantSharp && n.fifths > 0 && other >= -7) return { ...n, fifths: other };
+  return n;
+}
+
+/**
+ * 調を異名同音に書き換えたとき（fifths が ±12 変わったとき）に、音の綴りも合わせるための音程の補正。
+ * 例：G♭メジャー（-6）→ F♯メジャー（+6）は、音名を1つ下げる（G♭ → F♯）。
+ */
+export function respellInterval(iv: Interval, fromFifths: number, toFifths: number): Interval {
+  return { diatonic: iv.diatonic - (toFifths - fromFifths) / 12, chromatic: iv.chromatic };
+}

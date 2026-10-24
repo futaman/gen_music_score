@@ -8,14 +8,53 @@ import type { Score } from '../core/model/types';
 import { ScoreView } from './ScoreView';
 import { SettingsPanel } from './SettingsPanel';
 import { useDevice, useDisplaySettings } from './settings';
+import { checkRanges } from '../core/check/range';
+import { shiftOctaves } from '../core/transpose/transpose';
+import { exportMusicXml } from '../core/musicxml/export';
+import { TransposePanel } from './TransposePanel';
+import { RangePanel } from './RangePanel';
+import { visiblePartIds } from './ScoreView';
 
-type Props = { score: Score; onBack: () => void };
+type Props = { score: Score; fileName: string; onBack: () => void };
 
-export function ScoreScreen({ score, onBack }: Props) {
+export function ScoreScreen({ score: original, fileName, onBack }: Props) {
   const device = useDevice();
   const { settings, update, reset } = useDisplaySettings(device);
-  const [panel, setPanel] = useState(false);
+  const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | null>(null);
+  // 移調などで書き換えた楽譜（元の楽譜は original に残す）
+  const [score, setScore] = useState(original);
+  const [revision, setRevision] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const change = (next: Score, message: string) => {
+    setScore(next);
+    setRevision((r) => r + 1);
+    setToast(message);
+  };
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const index = useMemo(() => buildScoreIndex(score), [score]);
+
+  // ---- 音域チェック（表示しているパートだけ）----
+  const shownParts = useMemo(() => visiblePartIds(score, settings), [score, settings]);
+  const issues = useMemo(() => checkRanges(score, shownParts), [score, shownParts]);
+  const warnHeads = useMemo(() => new Set(issues.map((i) => i.headId)), [issues]);
+  const jumpTo = (measure: number) => {
+    const section = [...(viewRef.current?.querySelectorAll<HTMLElement>('section.chunk') ?? [])].find(
+      (s) => Number(s.dataset.start) <= measure && measure < Number(s.dataset.end),
+    );
+    section?.scrollIntoView({ block: 'start', inline: 'start' });
+  };
+  const download = () => {
+    const blob = new Blob([exportMusicXml(score)], { type: 'application/vnd.recordare.musicxml+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName.replace(/\.(mxl|musicxml|xml)$/i, '') + (score === original ? '' : '-編集') + '.musicxml';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
   const viewRef = useRef<HTMLDivElement>(null);
 
   // ---- 再生 ----
@@ -77,7 +116,7 @@ export function ScoreScreen({ score, onBack }: Props) {
         <div className="segmented" role="radiogroup" aria-label="音の高さ">
           {(
             [
-              ['written', '移調'],
+              ['written', '記譜'],
               ['concert', '実音'],
             ] as const
           ).map(([v, label]) => (
@@ -109,7 +148,10 @@ export function ScoreScreen({ score, onBack }: Props) {
             </option>
           ))}
         </select>
-        <button className="button" onClick={() => setPanel(true)}>
+        <button className="button" onClick={() => setPanel('transpose')}>
+          移調
+        </button>
+        <button className="button" onClick={() => setPanel('settings')}>
           設定
         </button>
       </header>
@@ -119,6 +161,8 @@ export function ScoreScreen({ score, onBack }: Props) {
           settings={settings}
           device={device}
           containerRef={viewRef}
+          revision={revision}
+          warnHeads={warnHeads}
           onZoom={(zoom) => update({ zoom })}
           onMeasureTap={(mi) => {
             if (player.state === 'playing') return;
@@ -134,15 +178,64 @@ export function ScoreScreen({ score, onBack }: Props) {
         measureLabel={measureLabel}
         startLabel={startMeasure !== null ? `${score.measures[startMeasure]?.displayNumber}小節目から` : undefined}
         onPlay={play}
+        extra={
+          settings.warnings && issues.length > 0 ? (
+            <button className="warn-chip" onClick={() => setPanel('range')} aria-label={`音域外 ${issues.length}`}>
+              <span className="warn-long">音域外 </span>
+              <span className="warn-short">⚠ </span>
+              {issues.length}
+            </button>
+          ) : undefined
+        }
       />
-      {panel && (
+      {panel === 'settings' && (
         <SettingsPanel
           score={score}
           settings={settings}
           update={update}
           reset={reset}
-          onClose={() => setPanel(false)}
+          onDownload={download}
+          onClose={() => setPanel(null)}
         />
+      )}
+      {panel === 'transpose' && (
+        <TransposePanel
+          score={score}
+          onChange={(next, message) => {
+            change(next, message);
+            setPanel(null);
+          }}
+          onPartCreated={(partId) => update({ view: 'part', partId, pitchMode: 'written' })}
+          onReset={() => {
+            change(original, '元の楽譜に戻しました');
+            setPanel(null);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {panel === 'range' && (
+        <RangePanel
+          score={score}
+          issues={issues}
+          onFix={(list) => {
+            let next = score;
+            for (const o of [-3, -2, -1, 1, 2, 3]) {
+              const ids = new Set(list.filter((i) => i.suggestOctaves === o).map((i) => i.headId));
+              if (ids.size) next = shiftOctaves(next, ids, o);
+            }
+            change(next, `${list.length}音のオクターブを動かしました`);
+          }}
+          onJump={(m) => {
+            setPanel(null);
+            jumpTo(m);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
       )}
     </div>
   );
