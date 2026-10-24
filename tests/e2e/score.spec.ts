@@ -29,3 +29,25 @@ test('オーケストラ（500小節）の最初の表示までの時間', async
   const limit = test.info().project.name === 'pc' ? 5000 : 10000;
   expect(ms).toBeLessThan(limit);
 });
+
+test('再生すると、鳴っている音に色が付き、一時停止できる', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await openScore(page, 'mozart-k464-1-allegro.mxl');
+  await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
+  await page.getByRole('button', { name: '再生' }).click();
+  await expect(page.locator('.chunk svg .playing').first()).toBeAttached({ timeout: 15_000 });
+  await expect(page.locator('.playbar .position')).toContainText('小節目');
+  await page.getByRole('button', { name: '一時停止' }).click();
+  await expect(page.getByRole('button', { name: '再生' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('小節をタップすると、その小節から再生できる', async ({ page }) => {
+  await openScore(page, 'mozart-k464-1-allegro.mxl');
+  // 小節index 5 の五線をタップ（K464 は弱起の0小節目から始まるので「5小節目」）
+  const measure = page.locator('[id="m5"]');
+  await expect(measure).toBeAttached();
+  await measure.locator('.staff').first().dispatchEvent('click');
+  await expect(page.locator('.playbar .position')).toHaveText('5小節目から');
+});

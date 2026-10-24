@@ -93,7 +93,7 @@
       "polyphonic": false,
       "staves": 1,
       "midiProgram": 69,
-      "sample": "english",
+      "sample": "english-horn",
       "match": {
         "sounds": ["wind.reed.english-horn"],
         "names": ["english horn", "cor anglais", "corno inglese", "englischhorn", "イングリッシュ"]
@@ -194,7 +194,7 @@
       "polyphonic": false,
       "staves": 1,
       "midiProgram": 71,
-      "sample": "bass",
+      "sample": "bass-clarinet",
       "match": {
         "sounds": ["wind.reed.clarinet.bass"],
         "names": ["bass clarinet", "clarinetto basso", "bassklarinette", "バスクラ"]
@@ -383,7 +383,7 @@
       "polyphonic": false,
       "staves": 1,
       "midiProgram": 57,
-      "sample": "bass",
+      "sample": "trombone",
       "match": {
         "sounds": ["brass.trombone.bass"],
         "names": ["bass trombone", "bassposaune"]
@@ -432,7 +432,7 @@
       "polyphonic": false,
       "staves": 1,
       "midiProgram": 65,
-      "sample": "alto",
+      "sample": "alto-sax",
       "match": {
         "sounds": ["wind.reed.saxophone.alto"],
         "names": ["alto sax", "altsax", "アルトサックス"]
@@ -458,7 +458,7 @@
       "polyphonic": false,
       "staves": 1,
       "midiProgram": 66,
-      "sample": "tenor",
+      "sample": "tenor-sax",
       "match": {
         "sounds": ["wind.reed.saxophone.tenor"],
         "names": ["tenor sax", "tenorsax", "テナーサックス"]
@@ -658,7 +658,7 @@
       "polyphonic": true,
       "staves": 1,
       "midiProgram": 0,
-      "sample": "unknown",
+      "sample": "piano",
       "match": {
         "sounds": [],
         "names": []

@@ -19,13 +19,21 @@ export function visiblePartIds(score: Score, s: DisplaySettings): string[] {
   return all;
 }
 
-type Props = { index: ScoreIndex; settings: DisplaySettings; device: Device };
+type Props = {
+  index: ScoreIndex;
+  settings: DisplaySettings;
+  device: Device;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  /** 小節をタップしたとき（小節index） */
+  onMeasureTap?: (measure: number) => void;
+};
 
 /** 楽譜の表示。数小節ずつのチャンクに分け、画面に近いものだけを描く */
-export function ScoreView({ index, settings, device }: Props) {
+export function ScoreView({ index, settings, device, containerRef, onMeasureTap }: Props) {
   const renderer = useMemo(() => new Renderer(), []);
   useEffect(() => () => renderer.dispose(), [renderer]);
-  const ref = useRef<HTMLDivElement>(null);
+  const ownRef = useRef<HTMLDivElement>(null);
+  const ref = containerRef ?? ownRef;
   const width = useWidth(ref);
 
   const score = index.score;
@@ -100,6 +108,10 @@ export function ScoreView({ index, settings, device }: Props) {
       ref={ref}
       className={`score-view layout-${settings.layout}${settings.measureNumbers === 'none' ? ' hide-mnum' : ''}`}
       data-testid="score-view"
+      onClick={(e) => {
+        const m = (e.target as Element).closest('g.measure');
+        if (m?.id.startsWith('m')) onMeasureTap?.(Number(m.id.slice(1)));
+      }}
     >
       {width > 0 &&
         chunks.map((c) => (
@@ -165,15 +177,29 @@ function Chunk({ index, renderer, options, verovioOptions, estHeight, onLayout }
   const label = `${index.score.measures[options.start]?.displayNumber}〜${index.score.measures[options.end - 1]?.displayNumber}小節`;
   if (error) {
     return (
-      <section ref={ref} className="chunk chunk-error">
+      <section ref={ref} className="chunk chunk-error" data-start={options.start} data-end={options.end}>
         {label}を描けませんでした：{error}
       </section>
     );
   }
   return svg ? (
-    <section ref={ref} className="chunk" aria-label={label} dangerouslySetInnerHTML={{ __html: svg }} />
+    <section
+      ref={ref}
+      className="chunk"
+      aria-label={label}
+      data-start={options.start}
+      data-end={options.end}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   ) : (
-    <section ref={ref} className="chunk placeholder" aria-label={`${label}（描画中）`} style={{ height: estHeight }} />
+    <section
+      ref={ref}
+      className="chunk placeholder"
+      aria-label={`${label}（描画中）`}
+      data-start={options.start}
+      data-end={options.end}
+      style={{ height: estHeight }}
+    />
   );
 }
 
