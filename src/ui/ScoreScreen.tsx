@@ -53,8 +53,8 @@ export function ScoreScreen({ score, onBack }: Props) {
   }, [player, player.state, cursor, follow]);
   const mark = player.state === 'stopped' ? undefined : timeline.measures[markIndex];
   const measureLabel = mark
-    ? `${score.measures[mark.measure]?.displayNumber}小節目 / 全${score.measures.length}小節`
-    : `全${score.measures.length}小節`;
+    ? `${score.measures[mark.measure]?.displayNumber} / ${score.measures.length}小節`
+    : `${score.measures.length}小節`;
   const play = () => {
     if (player.state === 'stopped' && startMeasure !== null) {
       const m = timeline.measures.find((x) => x.measure === startMeasure);
@@ -119,6 +119,7 @@ export function ScoreScreen({ score, onBack }: Props) {
           settings={settings}
           device={device}
           containerRef={viewRef}
+          onZoom={(zoom) => update({ zoom })}
           onMeasureTap={(mi) => {
             if (player.state === 'playing') return;
             setStartMeasure(mi);

@@ -249,6 +249,8 @@ select {
 }
 .score-view {
   padding: 8px 16px 96px;
+  /* 2本指のピンチはアプリで扱う（ブラウザ全体の拡大にしない） */
+  touch-action: pan-x pan-y;
 }
 .score-view.layout-horizontal {
   display: flex;
@@ -475,4 +477,16 @@ select {
   background: var(--fg);
   color: var(--bg);
   font-size: 14px;
+}
+
+.about {
+  margin-top: 32px;
+  font-size: 14px;
+}
+.about h3 {
+  font-size: 14px;
+  margin: 12px 0 4px;
+}
+a {
+  color: var(--accent);
 }

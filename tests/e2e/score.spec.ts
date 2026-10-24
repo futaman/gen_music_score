@@ -37,7 +37,7 @@ test('再生すると、鳴っている音に色が付き、一時停止でき�
   await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
   await page.getByRole('button', { name: '再生' }).click();
   await expect(page.locator('.chunk svg .playing').first()).toBeAttached({ timeout: 15_000 });
-  await expect(page.locator('.playbar .position')).toContainText('小節目');
+  await expect(page.locator('.playbar .position')).toHaveText(/^\d+ \/ \d+小節$/);
   await page.getByRole('button', { name: '一時停止' }).click();
   await expect(page.getByRole('button', { name: '再生' })).toBeVisible();
   expect(errors).toEqual([]);

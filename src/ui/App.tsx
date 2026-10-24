@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ImportResult } from '../core/musicxml/file';
+import { About } from './About';
 import { ImportSummary } from './ImportSummary';
 import { ScoreScreen } from './ScoreScreen';
 import { importInWorker } from './importScore';
@@ -70,6 +71,7 @@ export function App() {
       {state.kind === 'loaded' && (
         <ImportSummary fileName={state.fileName} result={state.result} ms={state.ms} onOpen={() => setViewing(true)} />
       )}
+      <About />
     </div>
   );
 }

@@ -26,15 +26,18 @@ type Props = {
   containerRef?: React.RefObject<HTMLDivElement | null>;
   /** 小節をタップしたとき（小節index） */
   onMeasureTap?: (measure: number) => void;
+  /** ピンチで拡大率を変えたとき（50〜200） */
+  onZoom?: (zoom: number) => void;
 };
 
 /** 楽譜の表示。数小節ずつのチャンクに分け、画面に近いものだけを描く */
-export function ScoreView({ index, settings, device, containerRef, onMeasureTap }: Props) {
+export function ScoreView({ index, settings, device, containerRef, onMeasureTap, onZoom }: Props) {
   const renderer = useMemo(() => new Renderer(), []);
   useEffect(() => () => renderer.dispose(), [renderer]);
   const ownRef = useRef<HTMLDivElement>(null);
   const ref = containerRef ?? ownRef;
   const width = useWidth(ref);
+  usePinch(ref, settings.zoom === 'fit' ? 100 : settings.zoom, onZoom);
 
   const score = index.score;
   const partIds = useMemo(() => visiblePartIds(score, settings), [score, settings]);
@@ -235,4 +238,60 @@ function measuresPerSystem(svg: string): number[] {
     .split('class="system"')
     .slice(1)
     .map((part) => (part.match(/class="measure"/g) ?? []).length);
+}
+
+/**
+ * 2本指のピンチで拡大率を変える。指を動かしている間は見た目だけ拡大し、離したら描き直す。
+ * （ドラッグ以外の代替として、設定パネルにも拡大率のスライダーがある）
+ */
+function usePinch(ref: React.RefObject<HTMLElement | null>, zoom: number, onZoom?: (zoom: number) => void) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onZoom) return;
+    const pointers = new Map<number, { x: number; y: number }>();
+    let startDist = 0;
+    let ratio = 1;
+    const dist = () => {
+      const [a, b] = [...pointers.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        startDist = dist();
+        ratio = 1;
+        const [a, b] = [...pointers.values()];
+        const r = el.getBoundingClientRect();
+        el.style.transformOrigin = `${(a.x + b.x) / 2 - r.left}px ${(a.y + b.y) / 2 - r.top}px`;
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2 && startDist > 0) {
+        ratio = Math.max(50 / zoom, Math.min(200 / zoom, dist() / startDist));
+        el.style.transform = `scale(${ratio})`;
+      }
+    };
+    const up = (e: PointerEvent) => {
+      if (!pointers.delete(e.pointerId)) return;
+      if (pointers.size < 2 && startDist > 0) {
+        startDist = 0;
+        el.style.transform = '';
+        const next = Math.round((zoom * ratio) / 10) * 10;
+        if (Math.abs(next - zoom) >= 10) onZoom(Math.max(50, Math.min(200, next)));
+      }
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+    };
+  }, [ref, zoom, onZoom]);
 }
