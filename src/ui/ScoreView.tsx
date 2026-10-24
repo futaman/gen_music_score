@@ -62,7 +62,8 @@ export function ScoreView({ index, settings, device, containerRef, onMeasureTap,
     if (settings.layout === 'horizontal') return { ...common, breaks: 'none', adjustPageWidth: true, pageWidth: 60000 };
     // ページ表示：A4 の幅（210mm）で組む。縦の連続表示：画面幅で組む
     const pageWidth = settings.layout === 'page' ? 2100 : Math.max(500, Math.round(((width - 2) * 100) / scale));
-    return { ...common, breaks: 'auto', pageWidth };
+    // 最後の段も幅いっぱいに広げ、段の右端をそろえる
+    return { ...common, breaks: 'auto', pageWidth, minLastJustification: 0 };
   }, [scale, settings.layout, settings.measureNumbers, width]);
 
   const chunkOptions = useMemo((): Omit<ChunkOptions, 'start' | 'end' | 'labels'> => {

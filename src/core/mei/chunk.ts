@@ -4,6 +4,7 @@
 
 import { getInstrument, partTransposition } from '../instruments';
 import { planAccidentals, writtenKey, writtenPitch, type PitchMode } from '../model/display';
+import { autoBeamGroups } from '../model/beaming';
 import { notationFor, NOTE_TYPE_VALUES, tupletRatio } from '../model/notation';
 import { clefAt, type ScoreIndex } from '../model/scoreIndex';
 import type { ClefChange, Direction, Note, NoteType, Part, Transposition } from '../model/types';
@@ -171,7 +172,7 @@ class MeiWriter {
             sym: meta.time?.symbol === 'common' ? 'common' : meta.time?.symbol === 'cut' ? 'cut' : undefined,
           }),
         ];
-        if (partStaves.length === 1 && label) children.unshift(tag('label', {}, escapeXml(label)));
+        if (partStaves.length === 1 && label) children.unshift(this.labelXml(part, label));
         return tag('staffDef', { n: s.n, lines: 5, ...this.clefAttrs(clef, 'clef.') }, children.join(''));
       });
       if (partStaves.length > 1) {
@@ -179,13 +180,20 @@ class MeiWriter {
           tag(
             'staffGrp',
             { symbol: 'brace', 'bar.thru': 'true' },
-            (label ? tag('label', {}, escapeXml(label)) : '') + defs.join(''),
+            (label ? this.labelXml(part, label) : '') + defs.join(''),
           ),
         );
       } else groups.push(defs[0]);
       i += partStaves.length;
     }
     return tag('scoreDef', {}, tag('staffGrp', { symbol: 'bracket', 'bar.thru': 'true' }, groups.join('')));
+  }
+
+  /** 段の頭の楽器名。2段目以降は略称にして、どの段も同じ字下げにそろえる */
+  private labelXml(part: Part, label: string): string {
+    const def = getInstrument(part.instrumentId);
+    const abbr = part.abbr || def.abbr || label;
+    return tag('label', {}, escapeXml(label)) + tag('labelAbbr', {}, escapeXml(abbr));
   }
 
   private label(part: Part): string {
@@ -473,6 +481,20 @@ class MeiWriter {
     const byVoice = new Map<number, Note[]>();
     for (const n of notes) if (!n.grace) (byVoice.get(n.voice) ?? byVoice.set(n.voice, []).get(n.voice)!).push(n);
     for (const list of byVoice.values()) {
+      // ファイルに連桁の情報がなければ、拍ごとに自動でつなぐ
+      if (!list.some((n) => n.beams?.length)) {
+        for (const g of autoBeamGroups(list, this.index.timeAt[mi])) {
+          const ids = g.map(elId);
+          out.push(
+            tag('beamSpan', {
+              startid: `#${ids[0]}`,
+              endid: `#${ids[ids.length - 1]}`,
+              plist: ids.map((i) => `#${i}`).join(' '),
+            }),
+          );
+        }
+        continue;
+      }
       let group: Note[] = [];
       for (const n of list) {
         const b = n.beams?.[0];

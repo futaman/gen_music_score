@@ -431,11 +431,20 @@ select {
   min-width: 3.2em;
   font-variant-numeric: tabular-nums;
 }
-.device-phone .playbar .tempo > span:first-child {
+.device-phone .playbar .tempo {
   display: none;
 }
-.device-phone .playbar .tempo input {
-  width: 80px;
+.mixer-tempo {
+  margin: 12px 0;
+}
+.mixer-tempo .tempo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mixer-tempo .tempo input {
+  flex: 1;
+  min-height: 44px;
 }
 .chunk svg .playing,
 .chunk svg .playing * {

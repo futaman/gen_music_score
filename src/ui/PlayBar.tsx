@@ -46,20 +46,9 @@ export function PlayBar({ player, score, measureLabel, startLabel, onPlay }: Pro
               ? startLabel
               : measureLabel}
         </span>
-        <label className="tempo">
-          <span>テンポ</span>
-          <input
-            type="range"
-            min={50}
-            max={150}
-            step={5}
-            value={Math.round(player.rate * 100)}
-            aria-label="テンポ（%）"
-            onChange={(e) => player.setRate(Number(e.target.value) / 100)}
-          />
-          <span className="tempo-value">{Math.round(player.rate * 100)}%</span>
-        </label>
+        <Tempo player={player} />
         <button className="button" onClick={() => setMixer(true)}>
+          {/* スマホでは、テンポもこの画面で変える */}
           パート
         </button>
       </div>
@@ -79,13 +68,16 @@ export function PlayBar({ player, score, measureLabel, startLabel, onPlay }: Pro
       )}
       {mixer && (
         <div className="sheet-backdrop" onClick={() => setMixer(false)}>
-          <section className="sheet" role="dialog" aria-label="パートの音" onClick={(e) => e.stopPropagation()}>
+          <section className="sheet" role="dialog" aria-label="テンポとパートの音" onClick={(e) => e.stopPropagation()}>
             <header className="sheet-header">
-              <h2>パートの音</h2>
+              <h2>テンポとパートの音</h2>
               <button className="button" onClick={() => setMixer(false)}>
                 閉じる
               </button>
             </header>
+            <div className="mixer-tempo">
+              <Tempo player={player} />
+            </div>
             <ul className="mixer">
               {score.parts.map((p) => (
                 <li key={p.id}>
@@ -127,4 +119,22 @@ function sessionStorageSet(k: string, v: string) {
   } catch {
     // 保存できなくても問題ない
   }
+}
+
+function Tempo({ player }: { player: Player }) {
+  return (
+    <label className="tempo">
+      <span>テンポ</span>
+      <input
+        type="range"
+        min={50}
+        max={150}
+        step={5}
+        value={Math.round(player.rate * 100)}
+        aria-label="テンポ（%）"
+        onChange={(e) => player.setRate(Number(e.target.value) / 100)}
+      />
+      <span className="tempo-value">{Math.round(player.rate * 100)}%</span>
+    </label>
+  );
 }

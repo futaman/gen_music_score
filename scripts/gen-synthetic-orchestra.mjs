@@ -61,6 +61,19 @@ function randomPitch(lo, hi) {
   }
 }
 
+// 音階の上を歩くように動かす（ほとんど2度・3度、ときどき4度・5度。音域の端では向きを変える）
+const SCALE_MIDI = [];
+for (let m = 0; m < 128; m++) if (SCALE_PC.includes(m % 12)) SCALE_MIDI.push(m);
+function nextPitch(prev, lo, hi) {
+  const i = SCALE_MIDI.indexOf(prev);
+  const r = rand();
+  let step = r < 0.45 ? 1 : r < 0.75 ? 2 : r < 0.92 ? 3 : 4;
+  if (rand() < 0.5) step = -step;
+  let j = i + step;
+  if (SCALE_MIDI[j] > hi || SCALE_MIDI[j] < lo) j = i - step;
+  return SCALE_MIDI[Math.max(0, Math.min(SCALE_MIDI.length - 1, j))];
+}
+
 // 1小節（2/4 = 8 divisions）のリズム型
 const RHYTHMS = [[2, 2, 2, 2], [4, 4], [8], [2, 2, 4], [1, 1, 1, 1, 2, 2], [3, 1, 4]];
 const TYPE = {
@@ -84,10 +97,12 @@ function noteXml({ midi, dur, transpose, chord = false, tie, rest = false }) {
   x += `<duration>${dur}</duration>`;
   if (tie) x += `<tie type="${tie}"/>`;
   x += `<voice>1</voice><type>${type}</type>${dot ? '<dot/>' : ''}`;
-  if (!rest && (tie || rand() < 0.15)) {
+  // スタッカートは8分音符以下の短い音にだけ付ける
+  const staccato = !rest && !tie && !chord && dur <= 2 && rand() < 0.25;
+  if (tie || staccato) {
     x += '<notations>';
     if (tie) x += `<tied type="${tie}"/>`;
-    if (!tie) x += '<articulations><staccato/></articulations>';
+    if (staccato) x += '<articulations><staccato/></articulations>';
     x += '</notations>';
   }
   return x + '</note>';
@@ -110,6 +125,7 @@ out.push('</part-list>');
 for (const [id, , clef, lo, hi, transpose] of PARTS) {
   out.push(`<part id="${id}">`);
   let restUntil = -1;
+  let prev = SCALE_MIDI.find((m) => m >= Math.round((lo + hi) / 2));
   for (let m = 1; m <= MEASURES; m++) {
     let x = `<measure number="${m}">`;
     if (m === 1) {
@@ -132,7 +148,7 @@ for (const [id, , clef, lo, hi, transpose] of PARTS) {
     } else {
       const rhythm = pick(RHYTHMS);
       for (const dur of rhythm) {
-        const midi = randomPitch(lo, hi);
+        const midi = (prev = nextPitch(prev, lo, hi));
         x += noteXml({ midi, dur, transpose });
         // 弦と金管はときどき重音・和音
         if (['vn1', 'vn2', 'va', 'hn1'].includes(id) && rand() < 0.1 && midi - 4 >= lo) {
