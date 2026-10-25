@@ -99,15 +99,25 @@ export async function putProject(p: Project): Promise<void> {
 
 /** 楽譜を差し替えて保存する。保存ごとに revision を1つ増やす */
 export async function saveScore(p: Project, score: Score, deviceId: string): Promise<Project> {
-  const next: Project = {
-    ...p,
-    sourceScore: score,
-    revision: p.revision + 1,
-    updatedAt: new Date().toISOString(),
-    updatedBy: deviceId,
-  };
+  return saveProject(withScore(p, score), p.revision, deviceId);
+}
+
+/** 変更したプロジェクトを保存する。revision は「保存してあった版 + 1」 */
+export async function saveProject(p: Project, savedRevision: number, deviceId: string): Promise<Project> {
+  const next: Project = { ...p, revision: savedRevision + 1, updatedAt: new Date().toISOString(), updatedBy: deviceId };
   await putProject(next);
   return next;
+}
+
+/** 楽譜（元の楽譜か、編曲などで作った楽譜）を id で探して差し替える */
+export function withScore(p: Project, score: Score): Project {
+  if (score.id === p.sourceScore.id) return { ...p, sourceScore: score };
+  return { ...p, derivedScores: p.derivedScores.map((s) => (s.id === score.id ? score : s)) };
+}
+
+/** id の楽譜（元の楽譜か、作った楽譜） */
+export function scoreById(p: Project, id: string): Score | undefined {
+  return p.sourceScore.id === id ? p.sourceScore : p.derivedScores.find((s) => s.id === id);
 }
 
 export async function renameProject(id: string, name: string): Promise<void> {

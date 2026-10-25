@@ -148,6 +148,16 @@ export function SettingsPanel({ score, settings, update, reset, onClose }: Props
           onChange={(v) => update({ noteNames: v as DisplaySettings['noteNames'] })}
         />
         <Choice
+          label="手で直した音（編曲）"
+          name="showEdits"
+          value={settings.showEdits ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: '色で示す' },
+            { value: 'off', label: '示さない' },
+          ]}
+          onChange={(v) => update({ showEdits: v === 'on' })}
+        />
+        <Choice
           label="続く全休符"
           name="multiRest"
           value={settings.multiRest ? 'on' : 'off'}

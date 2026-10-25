@@ -33,7 +33,10 @@ import {
   type Selection,
 } from '../core/edit/commands';
 import { buildScoreIndex } from '../core/model/scoreIndex';
-import type { Note, NoteType, Score } from '../core/model/types';
+import type { Arrangement, Note, NoteType, Score } from '../core/model/types';
+import { checkArrangement } from '../core/arrange/check';
+import { reassign } from '../core/arrange/workspace';
+import { ArrangePanel } from './ArrangePanel';
 import { exportMusicXml } from '../core/musicxml/export';
 import { buildTimeline, type Timeline } from '../core/playback/timeline';
 import { midi, type Step } from '../core/theory/pitch';
@@ -61,6 +64,13 @@ type Props = {
   saveStatus?: string;
   /** プロジェクトをファイルに保存する */
   onSaveProject?: () => void;
+  /** 開ける楽譜（元の楽譜と、編曲で作った楽譜）。2つ以上あれば切り替えを出す */
+  scores?: { id: string; label: string }[];
+  onSelectScore?: (id: string) => void;
+  /** 編曲で作った楽譜を開いているとき：元の楽譜と割当表 */
+  arrange?: { source: Score; arrangement: Arrangement; onChange: (a: Arrangement) => void; onDelete: () => void };
+  /** 元の楽譜から編曲案を作る */
+  onCreateArrangement?: (ensembleId: string, rotateMelody: boolean) => void;
 };
 
 const DURATION_KEYS: Record<string, NoteType> = {
@@ -76,10 +86,23 @@ const DURATION_KEYS: Record<string, NoteType> = {
 /** 画面に描いた要素の id（単音は音の id、和音・休符は音符の id） */
 const elementIdOf = (n: Note) => (n.heads.length === 1 ? n.heads[0].id : n.id);
 
-export function ScoreScreen({ score: original, name, onBack, onScoreChange, saveStatus, onSaveProject }: Props) {
+export function ScoreScreen({
+  score: original,
+  name,
+  onBack,
+  onScoreChange,
+  saveStatus,
+  onSaveProject,
+  scores,
+  onSelectScore,
+  arrange,
+  onCreateArrangement,
+}: Props) {
   const device = useDevice();
   const { settings, update, reset } = useDisplaySettings(device);
-  const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | 'export' | null>(null);
+  const [panel, setPanel] = useState<
+    'settings' | 'transpose' | 'range' | 'export' | 'arrange' | 'arrange-warnings' | null
+  >(null);
   const editor = useEditor(original);
   const { score } = editor;
   useEffect(() => {
@@ -345,6 +368,12 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
 
   // ---- 警告 ----
   const issues = useMemo(() => checkRanges(score, shownParts), [score, shownParts]);
+  const arrangeSource = arrange?.source;
+  const arrangement = arrange?.arrangement;
+  const arrangeWarnings = useMemo(
+    () => (arrangeSource && arrangement ? checkArrangement(score, { source: arrangeSource, arrangement }) : []),
+    [arrangeSource, arrangement, score],
+  );
   const overfull = useMemo(() => overfullVoices(score), [score]);
   const warn = useMemo(() => {
     const set = new Set(issues.map((i) => i.headId));
@@ -354,8 +383,23 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
           set.add(elementIdOf(n));
       }
     }
+    for (const w of arrangeWarnings)
+      for (const id of w.noteIds) {
+        const n = noteById.get(id);
+        if (n) set.add(elementIdOf(n));
+      }
     return set;
-  }, [issues, overfull, score.notes]);
+  }, [issues, overfull, score.notes, arrangeWarnings, noteById]);
+  // 編曲で作った楽譜：手で直した音
+  const edited = useMemo(
+    () =>
+      new Set(
+        arrangement && settings.showEdits
+          ? score.notes.filter((n) => n.origin !== 'generated' && n.heads.length).map(elementIdOf)
+          : [],
+      ),
+    [arrangement, settings.showEdits, score.notes],
+  );
   const marks = useMemo((): Marks => {
     const sel = new Set<string>();
     const selStaff = new Set<string>();
@@ -367,8 +411,8 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
           for (let st = 1; st <= staves; st++) selStaff.add(`s${m}-${pid}-${st}`);
       }
     }
-    return { sel, 'sel-staff': selStaff, ...(settings.warnings ? { warn } : {}) };
-  }, [selection, selectedNote, score.parts, settings.warnings, warn]);
+    return { sel, 'sel-staff': selStaff, edited, ...(settings.warnings ? { warn } : {}) };
+  }, [selection, selectedNote, score.parts, settings.warnings, warn, edited]);
 
   const jumpTo = (measure: number) => {
     const section = [...(viewRef.current?.querySelectorAll<HTMLElement>('section.chunk') ?? [])].find(
@@ -461,6 +505,20 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
         <button className="button" onClick={() => setPanel('transpose')}>
           移調
         </button>
+        {scores && scores.length > 1 && (
+          <select aria-label="楽譜" value={score.id} onChange={(e) => onSelectScore?.(e.target.value)}>
+            {scores.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        )}
+        {(arrange || onCreateArrangement) && (
+          <button className="button" onClick={() => setPanel('arrange')}>
+            編曲
+          </button>
+        )}
         <button className="button" onClick={() => setPanel('export')}>
           書き出し
         </button>
@@ -502,7 +560,17 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
         startLabel={startMeasure !== null ? `${score.measures[startMeasure]?.displayNumber}小節目から` : undefined}
         onPlay={play}
         extra={
-          settings.warnings && issues.length > 0 ? (
+          arrange && settings.warnings && arrangeWarnings.length > 0 ? (
+            <button
+              className="warn-chip"
+              onClick={() => setPanel('arrange-warnings')}
+              aria-label={`編曲の警告 ${arrangeWarnings.length}`}
+            >
+              <span className="warn-long">編曲の警告 </span>
+              <span className="warn-short">⚠ </span>
+              {arrangeWarnings.length}
+            </button>
+          ) : settings.warnings && issues.length > 0 ? (
             <button className="warn-chip" onClick={() => setPanel('range')} aria-label={`音域外 ${issues.length}`}>
               <span className="warn-long">音域外 </span>
               <span className="warn-short">⚠ </span>
@@ -513,6 +581,41 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
       />
       {panel === 'settings' && (
         <SettingsPanel score={score} settings={settings} update={update} reset={reset} onClose={() => setPanel(null)} />
+      )}
+      {(panel === 'arrange' || panel === 'arrange-warnings') && (
+        <ArrangePanel
+          score={score}
+          arrangement={arrange?.arrangement}
+          source={arrange?.source}
+          warnings={arrangeWarnings}
+          initialTab={panel === 'arrange-warnings' ? 'warnings' : 'table'}
+          onCreate={(ensembleId, rotate) => {
+            setPanel(null);
+            onCreateArrangement?.(ensembleId, rotate);
+          }}
+          onReassign={(sectionId, inst, units) => {
+            if (!arrange) return;
+            const r = reassign(arrange.source, arrange.arrangement, score, sectionId, inst, units);
+            arrange.onChange(r.arrangement);
+            if (r.result.changed !== 'all' && r.result.changed.length === 0)
+              setToast(r.result.message ?? '手で直した小節だけなので、作り直しませんでした');
+            else apply(r.result, '割当の変更');
+          }}
+          onDelete={
+            arrange
+              ? () => {
+                  setPanel(null);
+                  arrange.onDelete();
+                }
+              : undefined
+          }
+          onJump={(m, partId) => {
+            setPanel(null);
+            jumpTo(m);
+            if (partId) setSelection({ kind: 'range', partIds: [partId], start: m, end: m + 1 });
+          }}
+          onClose={() => setPanel(null)}
+        />
       )}
       {panel === 'export' && (
         <ExportPanel

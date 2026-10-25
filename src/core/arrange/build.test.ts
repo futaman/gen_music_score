@@ -202,3 +202,29 @@ function countBy(xs: string[]) {
   for (const x of xs) m[x] = (m[x] ?? 0) + 1;
   return m;
 }
+
+describe('割当表の変更（作り直し）', () => {
+  it('変えた楽器だけ作り直し、手で直した小節は残す', async () => {
+    const { createArrangement, reassign } = await import('./workspace');
+    const src = build({
+      a: { instrument: 'violin', measures: ['G5:1', 'A5:1'] },
+      b: { instrument: 'cello', measures: ['C3:1', 'D3:1'] },
+    });
+    const { arrangement, score } = createArrangement(src, 'wind-quintet', { starts: [0] });
+    expect(arrangement.targetScoreId).toBe(score.id);
+    const sec = arrangement.sections[0];
+    // 2小節目のオーボエを手で直したことにする
+    const edited: Score = {
+      ...score,
+      notes: score.notes.map((n) => (n.partId === 'oboe' && n.measure === 1 ? { ...n, origin: 'edited' } : n)),
+    };
+    const r = reassign(src, arrangement, edited, sec.id, 'oboe', ['b']);
+    expect(r.arrangement.sections[0].mapping.oboe).toEqual(['b']);
+    expect(r.kept).toBe(1);
+    expect(r.result.message).toContain('1小節');
+    expect(pitches(r.result.score, 'oboe', 0)).toEqual(['C4']); // チェロの線（オーボエの音域へ）
+    expect(pitches(r.result.score, 'oboe', 1)).toEqual(pitches(edited, 'oboe', 1)); // 手直しは残る
+    expect(pitches(r.result.score, 'flute', 0)).toEqual(pitches(edited, 'flute', 0)); // ほかの楽器は変わらない
+    expect(r.result.changed).toEqual([0]);
+  });
+});

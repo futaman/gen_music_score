@@ -20,6 +20,7 @@ export type DisplaySettings = {
   hornKeySignature: 'with' | 'without';
   warnings: boolean; // 警告ハイライト（音域外の音を赤く）
   multiRest: boolean; // 全休符が続く小節を数字付きの1つにまとめる
+  showEdits: boolean; // 編曲で作った楽譜で、手で直した音に色を付ける
 };
 
 export function defaultSettings(device: Device): DisplaySettings {
@@ -36,6 +37,7 @@ export function defaultSettings(device: Device): DisplaySettings {
     hornKeySignature: 'with',
     warnings: true,
     multiRest: false,
+    showEdits: true,
   };
 }
 

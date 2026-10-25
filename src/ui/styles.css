@@ -739,3 +739,34 @@ a {
   gap: 8px;
   min-height: 36px;
 }
+
+/* ---- 編曲 ---- */
+.sheet.arrange {
+  /* 割当表は楽器の数だけ列があるので広く */
+  width: min(980px, 100%);
+}
+.table-scroll {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.arrange-table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.arrange-table th,
+.arrange-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.arrange-table select {
+  max-width: 150px;
+  font-size: 13px;
+}
+/* 手で直した音 */
+.chunk svg .edited,
+.chunk svg .edited * {
+  fill: #c2410c;
+  color: #c2410c;
+}

@@ -1,7 +1,7 @@
 // 自動保存：編集が止まって3秒たったら端末へ保存する。画面を離れるときはすぐ保存する。
 
 import type { Project, Score } from '../core/model/types';
-import { saveScore } from './projects';
+import { saveProject, scoreById, withScore } from './projects';
 
 export const AUTOSAVE_DELAY = 3000;
 
@@ -9,7 +9,9 @@ export type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
 export class AutoSaver {
   private project: Project;
-  private pending: Score | null = null;
+  private pending: Project | null = null;
+  /** 保存している途中の版（保存中の編集も、次の編集の土台にする） */
+  private inflight: Project | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private chain: Promise<void> = Promise.resolve();
   private listeners = new Set<() => void>();
@@ -41,12 +43,19 @@ export class AutoSaver {
 
   /** 保存したものと、まだ保存していない編集を合わせた最新のプロジェクト */
   current(): Project {
-    return this.pending ? { ...this.project, sourceScore: this.pending } : this.project;
+    return this.pending ?? this.inflight ?? this.project;
   }
 
+  /** 楽譜の編集を保存の予定に入れる（元の楽譜か作った楽譜かは id で決まる） */
   schedule(score: Score) {
-    if (score === this.project.sourceScore && !this.pending) return;
-    this.pending = score;
+    const cur = this.current();
+    if (scoreById(cur, score.id) === score) return;
+    this.update(withScore(cur, score));
+  }
+
+  /** プロジェクト全体の変更（編曲の割当表など）を保存の予定に入れる */
+  update(next: Project) {
+    this.pending = next;
     this.set('pending');
     clearTimeout(this.timer);
     this.timer = setTimeout(() => void this.flush(), this.delay);
@@ -56,17 +65,20 @@ export class AutoSaver {
   flush(): Promise<void> {
     clearTimeout(this.timer);
     this.timer = undefined;
-    const score = this.pending;
-    if (!score) return this.chain;
+    const next = this.pending;
+    if (!next) return this.chain;
     this.pending = null;
+    this.inflight = next;
     this.set('saving');
     this.chain = this.chain.then(async () => {
       try {
-        this.project = await saveScore(this.project, score, this.deviceId);
+        this.project = await saveProject(next, this.project.revision, this.deviceId);
+        this.inflight = null;
         if (!this.pending) this.set('saved');
       } catch (e) {
         // 次の編集でもう一度試す
-        this.pending ??= score;
+        this.pending ??= next;
+        this.inflight = null;
         this.set('error', e instanceof Error ? e.message : String(e));
       }
     });
