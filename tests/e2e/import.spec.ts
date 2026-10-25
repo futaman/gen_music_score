@@ -40,5 +40,17 @@ test('読み込めないファイルは理由を表示する', async ({ page }) 
   await page
     .getByLabel('楽譜ファイル')
     .setInputFiles({ name: 'song.mid', mimeType: 'audio/midi', buffer: Buffer.from('MThd\0\0\0\x06') });
-  await expect(page.getByRole('alert')).toContainText('MIDIファイルの読み込みにはまだ対応していません');
+  await expect(page.getByRole('alert')).toContainText('MIDIファイルが壊れているか、途中で切れています');
+});
+
+test('MIDIを読み込み、推定した楽譜として確認して開ける', async ({ page }) => {
+  await page.goto('/');
+  await page
+    .getByLabel('楽譜ファイル')
+    .setInputFiles(new URL('../../test-assets/midi/mozart-k464-1-allegro.mid', import.meta.url).pathname);
+  await expect(page.getByText('Aメジャー（♯3つ）')).toBeVisible();
+  await expect(page.getByText(/MIDIから推定した楽譜です/)).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'ヴァイオリン 2' })).toBeVisible();
+  await page.getByRole('button', { name: '楽譜を開く' }).click();
+  await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
 });

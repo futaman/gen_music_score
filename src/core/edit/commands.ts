@@ -751,17 +751,19 @@ export function fillMeasures(score: Score, measures: number[]): Score {
   return added.length ? { ...score, notes: [...score.notes, ...added] } : score;
 }
 
+/** MIDI番号の音を、調に合わせて綴る（調号どおり → 変化記号なし → ♯） */
+export function spellMidi(midiNumber: number, key: Key): Pitch {
+  // 半音下の音から半音上げた綴りを使う
+  const below = spellFromDiatonic(Math.round(((midiNumber - 13) * 7) / 12), midiNumber - 1);
+  const p = below ? spellSemitone(below, 1, key) : { step: 'C' as Step, alter: 0 as const, octave: 4 };
+  return midi(p) === midiNumber ? p : (spellFromDiatonic(Math.round(((midiNumber - 12) * 7) / 12), midiNumber) ?? p);
+}
+
 /** 鍵盤で入力：その高さの音にする（綴りは調号に合わせる）。休符なら音にして、次へ進む */
 export function enterMidi(score: Score, noteId: string, midiNumber: number): EditResult {
   const n = findNote(score, noteId);
   if (!n) return unchanged(score, '音符が選ばれていません');
-  const key = keyAt(score, n.measure);
-  // 半音下の音から半音上げた綴り（＝調号どおり → 変化なし → ♯）を使う
-  const below = spellFromDiatonic(Math.round(((midiNumber - 13) * 7) / 12), midiNumber - 1);
-  const p = below ? spellSemitone(below, 1, key) : { step: 'C' as Step, alter: 0 as const, octave: 4 };
-  const fixed =
-    midi(p) === midiNumber ? p : (spellFromDiatonic(Math.round(((midiNumber - 12) * 7) / 12), midiNumber) ?? p);
-  const head: NoteHead = { id: n.heads[0]?.id ?? newId('h'), pitch: fixed };
+  const head: NoteHead = { id: n.heads[0]?.id ?? newId('h'), pitch: spellMidi(midiNumber, keyAt(score, n.measure)) };
   const updated: Note = { ...n, heads: [head], measureRest: undefined, origin: editedOrigin(n) };
   if (n.measureRest) updated.notation = notationFor(n.duration) ?? undefined;
   const next = mapNotes(score, new Set([n.id]), () => updated);

@@ -171,12 +171,13 @@ export function App() {
         }}
       >
         <span>
-          MusicXMLファイル（.musicxml / .xml / .mxl）かプロジェクトのファイル（{PROJECT_EXT}）を選ぶか、ここにドロップ
+          MusicXML（.musicxml / .xml / .mxl）・MIDI（.mid）・プロジェクトのファイル（{PROJECT_EXT}
+          ）を選ぶか、ここにドロップ
         </span>
         <span className="button primary">ファイルを選ぶ</span>
         <input
           type="file"
-          accept=".musicxml,.xml,.mxl,.json,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json"
+          accept=".musicxml,.xml,.mxl,.mid,.midi,.json,audio/midi,audio/x-midi,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json"
           aria-label="楽譜ファイル"
           onChange={(e) => {
             const f = e.target.files?.[0];

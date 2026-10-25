@@ -2,6 +2,8 @@
 
 import { strFromU8, unzipSync } from 'fflate';
 import { ImportError, MAX_FILE_BYTES } from './errors';
+import { isMidi } from '../midi/parse';
+import { importMidi } from '../midi/toScore';
 import { importMusicXml, type ImportResult } from './import';
 
 export type { ImportResult };
@@ -15,8 +17,6 @@ export function decodeScoreFile(bytes: Uint8Array, fileName = ''): string {
   }
   const head = String.fromCharCode(...bytes.subarray(0, 8));
   if (head.startsWith('PK')) return decodeZip(bytes, fileName);
-  if (head.startsWith('MThd'))
-    throw new ImportError('unsupported-format', 'MIDIファイルの読み込みにはまだ対応していません。');
   if (head.startsWith('%PDF'))
     throw new ImportError(
       'unsupported-format',
@@ -66,6 +66,8 @@ function decodeZip(bytes: Uint8Array, fileName: string): string {
   return decodeText(files[rootPath]);
 }
 
+/** 楽譜ファイル（MusicXML・.mxl・MIDI）を読む */
 export function readScoreFile(bytes: Uint8Array, fileName = ''): ImportResult {
+  if (isMidi(bytes)) return importMidi(bytes, fileName);
   return importMusicXml(decodeScoreFile(bytes, fileName));
 }
