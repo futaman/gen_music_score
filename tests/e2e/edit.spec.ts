@@ -87,3 +87,38 @@ test('小節を範囲で選び、コピーして貼り付ける', async ({ page 
   await page.getByRole('button', { name: '貼り付け' }).click();
   await expect(page.getByRole('button', { name: '元に戻す' })).toBeEnabled();
 });
+
+test('編集が画面に出るまでの時間（目標：PC 0.2秒・スマホ 0.3秒）', async ({ page }, info) => {
+  await openScore(page, 'mozart-k464-1-allegro.mxl');
+  const times: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    const note = await tapNote(page, 2 + i);
+    const id = (await note.getAttribute('id'))!;
+    await expect(page.getByRole('toolbar', { name: '編集' })).toBeVisible();
+    // ボタンを押してから、その音の位置が変わった最初の描画までを、ページの中で測る
+    const ms = await page.evaluate(
+      (id) =>
+        new Promise<number>((resolve) => {
+          const y = () => document.querySelector(`[id="${id}"] use`)?.getBoundingClientRect().y;
+          const y0 = y();
+          const button = Array.from(document.querySelectorAll('button')).find((b) => b.textContent === '8va↑')!;
+          const t0 = performance.now();
+          button.click();
+          const check = () => {
+            const v = y();
+            if (v !== undefined && y0 !== undefined && Math.abs(v - y0) > 5) resolve(performance.now() - t0);
+            else requestAnimationFrame(check);
+          };
+          requestAnimationFrame(check);
+        }),
+      id,
+    );
+    times.push(Math.round(ms));
+  }
+  times.sort((a, b) => a - b);
+  const median = times[Math.floor(times.length / 2)];
+  info.annotations.push({ type: '編集反映（ミリ秒）', description: `中央値 ${median}（${times.join(', ')}）` });
+  console.log(`[${info.project.name}] 編集反映 中央値 ${median}ms（${times.join(', ')}）`);
+  // CI の機械は遅いことがあるので、ここでは大きく外れていないことだけ確かめる
+  expect(median).toBeLessThan(1000);
+});

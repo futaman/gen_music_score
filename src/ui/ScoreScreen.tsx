@@ -8,6 +8,8 @@ import {
   enterMidi,
   enterPitch,
   addChordTone,
+  applyAlternative,
+  melodyAlternatives,
   insertMeasures,
   makeTuplet,
   moveRangeToPart,
@@ -99,6 +101,10 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [clipboard, setClipboard] = useState<Clipboard | null>(null);
   const selectedNote = selection?.kind === 'note' ? noteById.get(selection.noteId) : undefined;
+  const alternatives = useMemo(
+    () => (selectedNote ? melodyAlternatives(score, selectedNote.id) : []),
+    [score, selectedNote],
+  );
   const shownParts = useMemo(() => visiblePartIds(score, settings), [score, settings]);
 
   // ---- 再生 ----
@@ -203,6 +209,8 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
           return apply(toggleArticulation(score, [n.id], a.name), '記号');
         case 'dynamic':
           return apply(setDynamic(score, n.id, a.value), '強弱');
+        case 'alternative':
+          return apply(applyAlternative(score, n.id, alternatives[a.index]), '音の差し替え');
       }
     }
     if (selection?.kind === 'range') {
@@ -476,6 +484,7 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
           slurPending={slurPending}
           keyboardOpen={keyboardOpen}
           canPaste={!!clipboard}
+          alternatives={alternatives}
           onAction={doAction}
         />
       )}

@@ -19,7 +19,10 @@ import {
   toggleTie,
   toRest,
   addChordTone,
+  applyAlternative,
+  melodyAlternatives,
 } from './commands';
+import { duplicatePartAs } from '../transpose/transpose';
 import { History } from './history';
 
 /** 4/4、各小節に4分音符を4つ（'-' は休符）。パートは P1（フルート）と P2（ピアノ） */
@@ -214,5 +217,32 @@ describe('鍵盤で入力', () => {
     expect(voice(enterMidi(s, 'n0-0', 63).score)[0]).toBe('E♭4:1/4'); // ハ短調（♭3つ）なので E♭
     expect(voice(enterMidi(s, 'n0-0', 66).score)[0]).toBe('F♯4:1/4');
     expect(voice(enterMidi(s, 'n0-0', 60).score)[0]).toBe('C4:1/4');
+  });
+});
+
+describe('取り出した旋律の手直し', () => {
+  it('元のパートで同じ位置の別の音に差し替えられる', () => {
+    const base = makeScore([['C4', 'D4', 'E4', 'F4']]);
+    // ピアノのパートに和音（C4+E4+G4）を置き、そこからフルートの旋律を取り出す
+    const piano: Note[] = base.notes.map((n) => ({
+      ...n,
+      id: `p${n.id}`,
+      partId: 'P2',
+      heads: [
+        ...n.heads.map((h) => ({ ...h, id: `p${h.id}` })),
+        { id: `p${n.id}-3`, pitch: { ...n.heads[0].pitch, step: n.heads[0].pitch.step === 'C' ? 'G' : 'A' } },
+      ],
+    }));
+    const src = { ...base, notes: [...base.notes, ...piano] };
+    const { score, partId } = duplicatePartAs(src, { sourcePartId: 'P2', instrumentId: 'flute' });
+    expect(voice(score, 0, partId)).toEqual(['G4:1/4', 'A4:1/4', 'A4:1/4', 'A4:1/4']);
+    const first = score.notes.find((n) => n.partId === partId && n.onset.num === 0)!;
+    const alts = melodyAlternatives(score, first.id);
+    expect(alts.map((a) => formatPitch(a.pitch))).toEqual(['C4']);
+    const r = applyAlternative(score, first.id, alts[0]);
+    expect(voice(r.score, 0, partId)[0]).toBe('C4:1/4');
+    expect(r.score.notes.find((n) => n.id === first.id)?.origin).toBe('edited');
+    // 元の楽譜にある音には候補がない
+    expect(melodyAlternatives(score, 'n0-0')).toEqual([]);
   });
 });

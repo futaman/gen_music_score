@@ -1,6 +1,7 @@
-import type { Selection } from '../core/edit/commands';
+import type { Alternative, Selection } from '../core/edit/commands';
 import type { NoteType, Score } from '../core/model/types';
 import { keyName } from '../core/theory/names';
+import { formatPitch } from '../core/theory/pitch';
 
 export type EditAction =
   | { type: 'pitch'; how: 'semitone-up' | 'semitone-down' | 'octave-up' | 'octave-down' | 'enharmonic' }
@@ -23,6 +24,7 @@ export type EditAction =
   | { type: 'delete-measures' }
   | { type: 'time'; beats: number; beatType: number }
   | { type: 'key'; fifths: number }
+  | { type: 'alternative'; index: number }
   | { type: 'deselect' };
 
 type Props = {
@@ -32,6 +34,8 @@ type Props = {
   slurPending: boolean;
   keyboardOpen: boolean;
   canPaste: boolean;
+  /** 取り出した旋律の音を差し替える候補（元のパートの同じ位置の音） */
+  alternatives?: Alternative[];
   onAction: (a: EditAction) => void;
 };
 
@@ -62,7 +66,16 @@ const TIMES: [number, number][] = [
 ];
 
 /** 選んでいるものに合わせた編集ボタン（画面の下、再生バーの上） */
-export function EditBar({ score, selection, rangeMode, slurPending, keyboardOpen, canPaste, onAction }: Props) {
+export function EditBar({
+  score,
+  selection,
+  rangeMode,
+  slurPending,
+  keyboardOpen,
+  canPaste,
+  alternatives = [],
+  onAction,
+}: Props) {
   const b = (label: string, action: EditAction, opts: { on?: boolean; title?: string } = {}) => (
     <button
       key={label}
@@ -113,6 +126,23 @@ export function EditBar({ score, selection, rangeMode, slurPending, keyboardOpen
             ))}
             <option value="none">強弱を消す</option>
           </select>,
+          alternatives.length > 0 ? (
+            <select
+              key="alt"
+              aria-label="元のパートの別の音"
+              value=""
+              onChange={(e) => onAction({ type: 'alternative', index: Number(e.target.value) })}
+            >
+              <option value="" disabled>
+                元の別の音
+              </option>
+              {alternatives.map((a, i) => (
+                <option key={i} value={i}>
+                  {formatPitch(a.pitch)}
+                </option>
+              ))}
+            </select>
+          ) : null,
           sep('s3'),
           b('鍵盤', { type: 'keyboard' }, { on: keyboardOpen }),
           b(

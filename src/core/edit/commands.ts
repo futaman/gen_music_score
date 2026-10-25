@@ -768,3 +768,42 @@ export function enterMidi(score: Score, noteId: string, midiNumber: number): Edi
   const after = nextEvent(next, updated);
   return { score: next, changed: [n.measure], select: { kind: 'note', noteId: (after ?? updated).id } };
 }
+
+export type Alternative = { pitch: Pitch; sourceNoteId: string };
+
+/**
+ * 旋律を取り出して作った音（derivedFrom あり）について、元のパートで同じ位置から鳴っている別の音の候補。
+ * 高い順。今の音と同じ高さのものは除く
+ */
+export function melodyAlternatives(score: Score, noteId: string): Alternative[] {
+  const n = findNote(score, noteId);
+  const from = n?.derivedFrom;
+  if (!n || !from) return [];
+  const current = new Set(n.heads.map((h) => midi(h.pitch)));
+  const seen = new Set<number>();
+  const out: Alternative[] = [];
+  for (const s of score.notes) {
+    if (s.partId !== from.sourcePartId || s.measure !== n.measure || s.grace || cmp(s.onset, n.onset) !== 0) continue;
+    for (const h of s.heads) {
+      const m = midi(h.pitch);
+      if (current.has(m) || seen.has(m)) continue;
+      seen.add(m);
+      out.push({ pitch: h.pitch, sourceNoteId: s.id });
+    }
+  }
+  return out.sort((a, b) => midi(b.pitch) - midi(a.pitch));
+}
+
+/** 取り出した旋律の音を、元のパートの別の音に差し替える（音の長さはそのまま） */
+export function applyAlternative(score: Score, noteId: string, alt: Alternative): EditResult {
+  const n = findNote(score, noteId);
+  if (!n?.derivedFrom) return unchanged(score, '旋律を取り出して作った音ではありません');
+  const head: NoteHead = { id: n.heads[0]?.id ?? newId('h'), pitch: alt.pitch };
+  const updated: Note = {
+    ...n,
+    heads: [head],
+    derivedFrom: { ...n.derivedFrom, sourceNoteIds: [alt.sourceNoteId] },
+    origin: editedOrigin(n),
+  };
+  return { score: mapNotes(score, new Set([n.id]), () => updated), changed: [n.measure] };
+}
