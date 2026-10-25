@@ -86,3 +86,33 @@ describe('表示の切り替え', () => {
     expect(concert).toMatch(/pname="a" oct="4"/);
   });
 });
+
+describe('複数小節休符', () => {
+  const rest = '<note><rest measure="yes"/><duration>4</duration></note>';
+  const note = '<note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><type>whole</type></note>';
+  const measures = [
+    `<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>${note}`,
+    rest,
+    rest,
+    rest,
+    rest,
+    `<direction placement="above"><direction-type><rehearsal>A</rehearsal></direction-type></direction>${rest}`,
+    rest,
+    rest,
+    note,
+  ];
+  const xml = `<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Flute</part-name></score-part></part-list>
+  <part id="P1">${measures.map((m, i) => `<measure number="${i + 1}">${m}</measure>`).join('')}</part></score-partwise>`;
+  const index = buildScoreIndex(importMusicXml(xml).score);
+  const opts = { start: 0, end: 9, partIds: ['P1'], pitchMode: 'written' as const, labels: 'full' as const };
+
+  it('続く全休符を数字付きの1つにまとめ、練習番号のある小節で切る。オフならまとめない', () => {
+    const mei = chunkToMei(index, { ...opts, multiRest: true });
+    expect([...mei.matchAll(/<multiRest num="(\d+)"/g)].map((m) => m[1])).toEqual(['4', '2']);
+    expect([...mei.matchAll(/<measure [^>]*xml:id="m(\d+)"/g)].map((m) => m[1])).toEqual(['0', '1', '5', '6', '8']);
+    const r = render(mei);
+    expect(r.ok).toBeTruthy();
+    expect(r.svg).toContain('class="multiRest');
+    expect(chunkToMei(index, opts)).not.toContain('multiRest');
+  });
+});

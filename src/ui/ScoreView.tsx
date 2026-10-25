@@ -96,12 +96,21 @@ export function ScoreView({ index, settings, device, containerRef, onTap, onZoom
       pitchMode: settings.pitchMode,
       noteNames: settings.noteNames === 'none' ? undefined : settings.noteNames,
       colors,
+      multiRest: settings.multiRest,
       noKeySignatureParts:
         settings.hornKeySignature === 'without'
           ? score.parts.filter((p) => p.instrumentId.startsWith('horn')).map((p) => p.id)
           : [],
     };
-  }, [partIds, score.parts, settings.colorBy, settings.hornKeySignature, settings.noteNames, settings.pitchMode]);
+  }, [
+    partIds,
+    score.parts,
+    settings.colorBy,
+    settings.hornKeySignature,
+    settings.multiRest,
+    settings.noteNames,
+    settings.pitchMode,
+  ]);
 
   // 表示の設定が変わったら全チャンクを作り直す
   const version = useMemo(() => JSON.stringify([verovioOptions, chunkOptions]), [verovioOptions, chunkOptions]);

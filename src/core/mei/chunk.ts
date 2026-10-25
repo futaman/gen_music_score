@@ -29,6 +29,8 @@ export type ChunkOptions = {
   headColors?: Record<string, string>;
   /** 調号を書かず臨時記号で書くパート（ホルンの慣習。記譜音で表示するときだけ） */
   noKeySignatureParts?: string[];
+  /** 全休符が続く小節を、数字付きの1つの休符にまとめる */
+  multiRest?: boolean;
 };
 
 const MEI_DUR: Record<NoteType, string> = {
@@ -98,6 +100,12 @@ export function chunkToMei(index: ScoreIndex, opts: ChunkOptions): string {
   for (let mi = opts.start; mi < opts.end; mi++) {
     const meta = score.measures[mi];
     if (mi > opts.start && (meta.key || meta.time)) body.push(w.scoreDefChange(mi));
+    const run = opts.multiRest && !inEnding ? restRun(index, staves, mi, opts.end) : 1;
+    if (run >= 2) {
+      body.push(w.multiRest(mi, run));
+      mi += run - 1;
+      continue;
+    }
     if (meta.ending?.type.startsWith('start')) {
       if (inEnding) body.push('</ending>');
       body.push(`<ending n="${escapeXml(meta.ending.numbers)}" label="${escapeXml(meta.ending.numbers)}.">`);
@@ -119,6 +127,34 @@ export function chunkToMei(index: ScoreIndex, opts: ChunkOptions): string {
     '<meiHead><fileDesc><titleStmt><title/></titleStmt><pubStmt/></fileDesc></meiHead>' +
     `<music><body><mdiv><score>${w.scoreDef()}<section>${body.join('')}</section></score></mdiv></body></music></mei>`
   );
+}
+
+/**
+ * mi から続く「表示するどの段も休符だけ」の小節の数。2未満ならまとめない。
+ * 記号（強弱・テンポ・練習番号・繰り返し・括弧・拍子や調号や音部記号の変更）がある小節で切る
+ */
+function restRun(index: ScoreIndex, staves: StaffInfo[], start: number, end: number): number {
+  const { measures } = index.score;
+  const parts = [...new Set(staves.map((s) => s.part.id))];
+  const plain = (mi: number, first: boolean) => {
+    const m = measures[mi];
+    if (m.rehearsal || m.tempo || m.jumps?.length || m.ending || m.repeat) return false;
+    if (!first && (m.key || m.time)) return false;
+    for (const id of parts) {
+      if (index.notes.get(id)?.[mi]?.some((n) => n.heads.length > 0 || n.grace)) return false;
+      if (index.directions.get(id)?.[mi]?.length) return false;
+      if (!first && index.clefs.get(id)?.some((c) => c.measure === mi)) return false;
+    }
+    return true;
+  };
+  let mi = start;
+  while (mi < end && plain(mi, mi === start)) {
+    mi++;
+    // 小節線が普通でない小節（複縦線など）はまとめた休符の最後にする
+    const bar = measures[mi - 1].barlineRight;
+    if (bar && bar !== 'regular') break;
+  }
+  return mi - start;
 }
 
 class MeiWriter {
@@ -225,6 +261,24 @@ class MeiWriter {
       return tag('staffDef', { n: s.n }, c.join(''));
     });
     return tag('scoreDef', {}, tag('staffGrp', {}, defs.join('')));
+  }
+
+  /** mi から count 小節の全休符を、数字付きの1つの休符で書く */
+  multiRest(mi: number, count: number): string {
+    this.mi = mi;
+    const meta = this.index.score.measures[mi];
+    const last = this.index.score.measures[mi + count - 1];
+    const attrs: Record<string, string | undefined> = { 'xml:id': `m${mi}`, n: meta.displayNumber };
+    if (last.barlineRight === 'light-heavy') attrs.right = 'end';
+    else if (last.barlineRight === 'light-light') attrs.right = 'dbl';
+    const staves = this.staves.map((s) =>
+      tag(
+        'staff',
+        { 'xml:id': `s${mi}-${s.part.id}-${s.staff}`, n: s.n },
+        tag('layer', { n: 1 }, tag('multiRest', { num: count })),
+      ),
+    );
+    return tag('measure', attrs, staves.join(''));
   }
 
   measure(mi: number): string {

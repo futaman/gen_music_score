@@ -37,6 +37,8 @@ test('再生すると、鳴っている音に色が付き、一時停止でき�
   await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
   await page.getByRole('button', { name: '再生' }).click();
   await expect(page.locator('.chunk svg .playing').first()).toBeAttached({ timeout: 15_000 });
+  // 再生位置の縦線
+  await expect(page.locator('.play-cursor')).toBeVisible();
   await expect(page.locator('.playbar .position')).toHaveText(/^\d+ \/ \d+小節$/);
   await page.getByRole('button', { name: '一時停止' }).click();
   await expect(page.getByRole('button', { name: '再生' })).toBeVisible();
@@ -50,4 +52,16 @@ test('小節をタップすると、その小節から再生できる', async ({
   await expect(measure).toBeAttached();
   await measure.locator('.staff').first().dispatchEvent('click');
   await expect(page.locator('.playbar .position')).toHaveText('5小節目から');
+});
+
+test('設定で、続く全休符を数字付きの1つにまとめられる', async ({ page }) => {
+  await openScore(page, 'synthetic-orchestra-500.musicxml');
+  await page.getByLabel('表示するパート').selectOption({ index: 2 }); // フルート2（12〜17小節が休み）
+  const first = page.locator('section.chunk[data-start="0"]:not(.placeholder)');
+  await expect(first.locator('g.note').first()).toBeVisible();
+  await expect(first.locator('g.multiRest')).toHaveCount(0);
+  await page.getByRole('button', { name: '設定' }).click();
+  await page.getByText('数字付きでまとめる').click();
+  await page.getByRole('button', { name: '閉じる' }).click();
+  await expect(first.locator('g.multiRest').first()).toBeVisible();
 });

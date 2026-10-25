@@ -248,6 +248,7 @@ select {
   min-width: 0;
 }
 .score-view {
+  position: relative;
   padding: 8px 16px 96px;
   /* 2本指のピンチはアプリで扱う（ブラウザ全体の拡大にしない） */
   touch-action: pan-x pan-y;
@@ -717,4 +718,16 @@ a {
 }
 .projects .open small {
   color: var(--muted);
+}
+
+/* 再生位置の縦線 */
+.play-cursor {
+  position: absolute;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 2;
 }

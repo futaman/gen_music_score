@@ -19,6 +19,7 @@ export type DisplaySettings = {
   theme: 'system' | 'light' | 'dark';
   hornKeySignature: 'with' | 'without';
   warnings: boolean; // 警告ハイライト（音域外の音を赤く）
+  multiRest: boolean; // 全休符が続く小節を数字付きの1つにまとめる
 };
 
 export function defaultSettings(device: Device): DisplaySettings {
@@ -34,6 +35,7 @@ export function defaultSettings(device: Device): DisplaySettings {
     theme: 'system',
     hornKeySignature: 'with',
     warnings: true,
+    multiRest: false,
   };
 }
 

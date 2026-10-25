@@ -150,6 +150,16 @@ export function SettingsPanel({ score, settings, update, reset, onDownload, onSa
           onChange={(v) => update({ noteNames: v as DisplaySettings['noteNames'] })}
         />
         <Choice
+          label="続く全休符"
+          name="multiRest"
+          value={settings.multiRest ? 'on' : 'off'}
+          options={[
+            { value: 'off', label: '1小節ずつ' },
+            { value: 'on', label: '数字付きでまとめる' },
+          ]}
+          onChange={(v) => update({ multiRest: v === 'on' })}
+        />
+        <Choice
           label="小節番号"
           name="measureNumbers"
           value={settings.measureNumbers}
