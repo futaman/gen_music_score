@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { looksLikeProject, parseProjectJson, PROJECT_EXT } from '../core/model/projectFile';
+import { fillMeasures } from '../core/edit/commands';
 import { newProject } from '../core/model/schema';
 import type { Project } from '../core/model/types';
 import type { ImportResult } from '../core/musicxml/file';
@@ -200,8 +201,12 @@ export function App() {
           fileName={state.fileName}
           result={state.result}
           ms={state.ms}
-          onOpen={() => {
-            const score = state.result.score;
+          onOpen={(fillShort) => {
+            const imported = state.result.score;
+            const bad = state.result.warnings.flatMap((w) =>
+              w.code === 'measure-length' && w.measure !== undefined ? [w.measure] : [],
+            );
+            const score = fillShort ? fillMeasures(imported, [...new Set(bad)]) : imported;
             void start(newProject(score, deviceId(), score.title || baseName(state.fileName)));
           }}
         />
@@ -253,6 +258,28 @@ export function App() {
           </ul>
         </section>
       )}
+      <details className="about">
+        <summary>楽譜の画像・PDFから作るには</summary>
+        <p className="muted">
+          画像やPDFの楽譜は、このアプリでは直接読み込めません。楽譜読み取りソフトで MusicXML
+          にしてから読み込んでください。
+        </p>
+        <ol className="compact">
+          <li>
+            <a href="https://audiveris.github.io/audiveris/" target="_blank" rel="noreferrer">
+              Audiveris
+            </a>
+            （無料、PC）で画像・PDFを開き、「Book → Export as MusicXML」で .mxl に書き出す
+          </li>
+          <li>または MuseScore（無料、PC）の「PDFを読み込む」で読み取り、MusicXML に書き出す</li>
+          <li>
+            できたファイルをここで開く。拍の足りない小節は休符で埋められ、多すぎる小節は赤く表示されるので、そこを直す
+          </li>
+        </ol>
+        <p className="muted">
+          スキャンはなるべくまっすぐ・高い解像度（300dpi 程度）にすると、読み取りの誤りが減ります。
+        </p>
+      </details>
       <About />
     </div>
   );

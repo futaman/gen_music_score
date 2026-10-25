@@ -54,3 +54,30 @@ test('MIDIを読み込み、推定した楽譜として確認して開ける', a
   await page.getByRole('button', { name: '楽譜を開く' }).click();
   await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
 });
+
+test('画像の楽譜は、読み取りソフトで MusicXML にする案内を出す', async ({ page }) => {
+  await page.goto('/');
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+  await page.getByLabel('楽譜ファイル').setInputFiles({ name: 'scan.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByRole('alert')).toContainText('画像の楽譜は直接読み込めません');
+  await page.getByText('楽譜の画像・PDFから作るには', { exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Audiveris' })).toBeVisible();
+});
+
+test('拍の足りない小節（読み取りソフトの結果によくある）は休符で埋めて開ける', async ({ page }) => {
+  const note = (step: string, dur: number, type: string) =>
+    `<note><pitch><step>${step}</step><octave>5</octave></pitch><duration>${dur}</duration><type>${type}</type></note>`;
+  const xml = `<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Flute</part-name></score-part></part-list><part id="P1">
+  <measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>${note('C', 4, 'whole')}</measure>
+  <measure number="2">${note('D', 2, 'half')}</measure>
+  <measure number="3">${note('E', 4, 'whole')}</measure></part></score-partwise>`;
+  await page.goto('/');
+  await page
+    .getByLabel('楽譜ファイル')
+    .setInputFiles({ name: 'omr.musicxml', mimeType: 'application/xml', buffer: Buffer.from(xml) });
+  const fill = page.getByLabel(/拍の足りない小節を休符で埋める/);
+  await expect(fill).toBeChecked();
+  await page.getByRole('button', { name: '楽譜を開く' }).click();
+  // 2小節目に休符が足される
+  await expect(page.locator('section.chunk:not(.placeholder) [id="m1"] g.rest')).toHaveCount(1);
+});

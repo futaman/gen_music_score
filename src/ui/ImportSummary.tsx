@@ -1,13 +1,23 @@
+import { useState } from 'react';
 import { getInstrument, partTransposition } from '../core/instruments';
 import { exportMusicXml } from '../core/musicxml/export';
 import type { ImportResult } from '../core/musicxml/file';
 import { keyName, transpositionName } from '../core/theory/names';
 
-type Props = { fileName: string; result: ImportResult; ms: number; onOpen: () => void };
+type Props = {
+  fileName: string;
+  result: ImportResult;
+  ms: number;
+  /** fillShort：拍の足りない小節を休符で埋めてから開く */
+  onOpen: (fillShort: boolean) => void;
+};
 
 /** 読み込み確認：パート・楽器・調号・拍子・小節数と、警告・無視した要素の一覧 */
 export function ImportSummary({ fileName, result, ms, onOpen }: Props) {
   const { score, warnings, ignored, software } = result;
+  // 拍の数が合わない小節（楽譜読み取りソフトの結果によくある）
+  const badMeasures = [...new Set(warnings.filter((w) => w.code === 'measure-length').map((w) => w.measure))];
+  const [fillShort, setFillShort] = useState(true);
   const first = score.measures[0];
   const keyChanges = score.measures.filter((m, i) => i > 0 && m.key).length;
   const timeChanges = score.measures.filter((m, i) => i > 0 && m.time).length;
@@ -54,8 +64,15 @@ export function ImportSummary({ fileName, result, ms, onOpen }: Props) {
         <dd>{software ?? '—'}</dd>
       </dl>
       <p className="muted">読み込み時間 {Math.round(ms)}ms</p>
+      {badMeasures.length > 0 && (
+        <label className="check">
+          <input type="checkbox" checked={fillShort} onChange={(e) => setFillShort(e.target.checked)} />
+          拍の足りない小節を休符で埋める（拍の数が合わない小節 {badMeasures.length}
+          。多すぎる小節は開いたあと赤く表示します）
+        </label>
+      )}
       <div className="actions">
-        <button className="button primary" onClick={onOpen}>
+        <button className="button primary" onClick={() => onOpen(badMeasures.length > 0 && fillShort)}>
           楽譜を開く
         </button>
         <button className="button" onClick={download}>

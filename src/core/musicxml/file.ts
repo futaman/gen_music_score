@@ -17,10 +17,10 @@ export function decodeScoreFile(bytes: Uint8Array, fileName = ''): string {
   }
   const head = String.fromCharCode(...bytes.subarray(0, 8));
   if (head.startsWith('PK')) return decodeZip(bytes, fileName);
-  if (head.startsWith('%PDF'))
+  if (head.startsWith('%PDF') || isImage(bytes))
     throw new ImportError(
       'unsupported-format',
-      'PDFの読み込みにはまだ対応していません。楽譜ソフトでMusicXMLに書き出してから読み込んでください。',
+      `${head.startsWith('%PDF') ? 'PDF' : '画像'}の楽譜は直接読み込めません。楽譜読み取りソフト（Audiveris など）で MusicXML にしてから読み込んでください（ホームの「楽譜の画像・PDFから作るには」）。`,
     );
   const text = decodeText(bytes);
   if (!/<score-(partwise|timewise)[\s>]/.test(text.slice(0, 20000))) {
@@ -64,6 +64,20 @@ function decodeZip(bytes: Uint8Array, fileName: string): string {
   }
   if (!rootPath || !files[rootPath]) throw new ImportError('broken', '.mxl の中に楽譜ファイルが見つかりません。');
   return decodeText(files[rootPath]);
+}
+
+/** PNG・JPEG・GIF・WebP・TIFF・BMP */
+function isImage(b: Uint8Array): boolean {
+  const ascii = String.fromCharCode(...b.subarray(0, 12));
+  return (
+    (b[0] === 0x89 && ascii.slice(1, 4) === 'PNG') ||
+    (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) ||
+    ascii.startsWith('GIF8') ||
+    (ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP') ||
+    ascii.startsWith('II*\0') ||
+    ascii.startsWith('MM\0*') ||
+    ascii.startsWith('BM')
+  );
 }
 
 /** 楽譜ファイル（MusicXML・.mxl・MIDI）を読む */
