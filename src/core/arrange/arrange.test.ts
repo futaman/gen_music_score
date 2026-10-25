@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildScoreIndex } from '../model/scoreIndex';
 import type { MeasureMeta, Note, Part, Score } from '../model/types';
 import { readScoreFile } from '../musicxml/file';
+import { importMusicXml } from '../musicxml/import';
 import { frac } from '../theory/fraction';
 import { parsePitch } from '../theory/pitch';
 import { analyzeSection, estimateRoles, sectionStarts, sourceUnits } from './analyze';
@@ -137,5 +138,39 @@ describe('割当案', () => {
       const assigned = new Set(Object.values(s.mapping).flat());
       for (const [u, r] of Object.entries(s.roles)) if (r !== 'rest' && r !== 'double') expect(assigned).toContain(u);
     }
+  });
+});
+
+describe('大編成（ステップ7）', () => {
+  it('合成オーケストラ（500小節）→ 木管5重奏：同じ楽器のパートを優先し、ティンパニは使わない。速い', async () => {
+    const { buildArrangedScore } = await import('./build');
+    const name = 'synthetic-orchestra-500.musicxml';
+    const score = readScoreFile(
+      new Uint8Array(readFileSync(new URL(`../../../test-assets/musicxml/${name}`, import.meta.url))),
+      name,
+    ).score;
+    const t0 = performance.now();
+    const { arrangement } = planArrangement(score, 'wind-quintet');
+    buildArrangedScore(score, arrangement);
+    const ms = performance.now() - t0;
+    expect(ms).toBeLessThan(3000); // 目標：PC 3秒
+    const instOf = new Map(score.parts.map((p) => [p.id, p.instrumentId]));
+    const pairs = arrangement.sections.flatMap((s) =>
+      Object.entries(s.mapping).map(([inst, units]) => [inst, units[0] ? instOf.get(units[0]) : undefined]),
+    );
+    const same = pairs.filter(([inst, src]) => inst === src).length;
+    expect(same / pairs.length).toBeGreaterThan(0.4);
+    expect(pairs.some(([, src]) => src === 'timpani')).toBe(false);
+  });
+
+  it('E♭管のホルン（記譜の長6度下が鳴る）は実音で扱う', () => {
+    const xml = `<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Horn in E♭</part-name></score-part></part-list>
+    <part id="P1"><measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef><transpose><diatonic>-5</diatonic><chromatic>-9</chromatic></transpose></attributes>
+    <note><pitch><step>C</step><octave>5</octave></pitch><duration>4</duration><type>whole</type></note></measure></part></score-partwise>`;
+    const score = importMusicXml(xml).score;
+    expect(score.notes[0].heads[0].pitch).toMatchObject({ step: 'E', alter: -1, octave: 4 });
+    const index = buildScoreIndex(score);
+    const a = analyzeSection(index, sourceUnits(index), 0, 1);
+    expect(a.stats[0].avgPitch).toBe(63); // E♭4
   });
 });

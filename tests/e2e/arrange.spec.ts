@@ -52,3 +52,25 @@ test('編曲案を作り、割当表を直し、警告から小節へ移動で�
   await page.getByLabel('楽譜').selectOption({ label: '編曲：木管5重奏' });
   await expect(page.locator('.chunk svg .edited').first()).toBeAttached();
 });
+
+test('大編成：合成オーケストラ（500小節）の編曲案の時間と、通し再生', async ({ page }, info) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await page.getByLabel('楽譜ファイル').setInputFiles(asset('synthetic-orchestra-500.musicxml'));
+  await page.getByRole('button', { name: '楽譜を開く' }).click();
+  await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: '編曲', exact: true }).click();
+  const t = Date.now();
+  await page.getByRole('button', { name: '編曲案を作る' }).click();
+  await expect(page.getByLabel('楽譜').locator('option:checked')).toHaveText('編曲：木管5重奏');
+  const ms = Date.now() - t;
+  console.log(`[${info.project.name}] 合成オーケストラ → 木管5重奏：${ms}ms`);
+  // 目標は PC 3秒・スマホ 10秒（ここは同じ機械で画面の大きさを変えているだけ）
+  expect(ms).toBeLessThan(info.project.name === 'pc' ? 3000 : 10000);
+
+  await expect(page.locator('section.chunk:not(.placeholder) g.note').first()).toBeVisible();
+  await page.getByRole('button', { name: '再生' }).click();
+  await expect(page.locator('.play-cursor')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.playbar .position')).toHaveText(/^\d+ \/ 500小節$/);
+  await page.getByRole('button', { name: '一時停止' }).click();
+});
