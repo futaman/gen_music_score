@@ -291,7 +291,7 @@ export function TransposePanel({ score, onChange, onPartCreated, onReset, onClos
             異名同音で簡単にする
           </button>
           <button className="button" onClick={onReset}>
-            元の楽譜に戻す
+            開いたときの状態に戻す
           </button>
         </div>
       </section>

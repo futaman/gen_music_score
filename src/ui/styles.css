@@ -668,3 +668,53 @@ a {
 .chunk svg g.chord {
   cursor: pointer;
 }
+
+/* ---- 保存・ホーム ---- */
+.toolbar .save-status {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.device-phone .toolbar .save-status {
+  display: none;
+}
+.projects {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.projects li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.projects .open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.projects .open {
+  overflow: hidden;
+}
+.projects .open strong,
+.projects .open small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.projects .open small {
+  color: var(--muted);
+}

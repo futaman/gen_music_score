@@ -47,7 +47,18 @@ import { useDevice, useDisplaySettings } from './settings';
 import { TransposePanel } from './TransposePanel';
 import { useEditor } from './useEditor';
 
-type Props = { score: Score; fileName: string; onBack: () => void };
+type Props = {
+  score: Score;
+  /** 書き出すファイルの名前のもと */
+  name: string;
+  onBack: () => void;
+  /** 編集したら呼ぶ（自動保存用） */
+  onScoreChange?: (score: Score) => void;
+  /** 保存の状態（ツールバーに出す） */
+  saveStatus?: string;
+  /** プロジェクトをファイルに保存する */
+  onSaveProject?: () => void;
+};
 
 const DURATION_KEYS: Record<string, NoteType> = {
   '1': '64th',
@@ -62,12 +73,15 @@ const DURATION_KEYS: Record<string, NoteType> = {
 /** 画面に描いた要素の id（単音は音の id、和音・休符は音符の id） */
 const elementIdOf = (n: Note) => (n.heads.length === 1 ? n.heads[0].id : n.id);
 
-export function ScoreScreen({ score: original, fileName, onBack }: Props) {
+export function ScoreScreen({ score: original, name, onBack, onScoreChange, saveStatus, onSaveProject }: Props) {
   const device = useDevice();
   const { settings, update, reset } = useDisplaySettings(device);
   const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | null>(null);
   const editor = useEditor(original);
   const { score } = editor;
+  useEffect(() => {
+    onScoreChange?.(score);
+  }, [score, onScoreChange]);
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
     if (!toast) return;
@@ -357,7 +371,7 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
     const blob = new Blob([exportMusicXml(score)], { type: 'application/vnd.recordare.musicxml+xml' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = fileName.replace(/\.(mxl|musicxml|xml)$/i, '') + (score === original ? '' : '-編集') + '.musicxml';
+    a.download = name.replace(/\.(mxl|musicxml|xml)$/i, '').replace(/[\\/:*?"<>|]/g, '_') + '.musicxml';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -376,7 +390,12 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
         <button className="button" onClick={onBack} aria-label="戻る">
           ←
         </button>
-        <h1 className="title">{score.title || '（曲名なし）'}</h1>
+        <h1 className="title">{score.title || name || '（曲名なし）'}</h1>
+        {saveStatus && (
+          <span className="save-status muted" aria-live="polite" data-testid="save-status">
+            {saveStatus}
+          </span>
+        )}
         <button
           className="button"
           onClick={editor.undo}
@@ -486,6 +505,7 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
           update={update}
           reset={reset}
           onDownload={download}
+          onSaveProject={onSaveProject}
           onClose={() => setPanel(null)}
         />
       )}
@@ -498,7 +518,7 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
           }}
           onPartCreated={(partId) => update({ view: 'part', partId, pitchMode: 'written' })}
           onReset={() => {
-            replaceScore(original, '元の楽譜に戻しました（元に戻すで取り消せます）');
+            replaceScore(original, '開いたときの状態に戻しました（元に戻すで取り消せます）');
             setPanel(null);
           }}
           onClose={() => setPanel(null)}

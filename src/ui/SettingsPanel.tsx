@@ -7,6 +7,7 @@ type Props = {
   update: (patch: Partial<DisplaySettings>) => void;
   reset: () => void;
   onDownload: () => void;
+  onSaveProject?: () => void;
   onClose: () => void;
 };
 
@@ -41,7 +42,7 @@ function Choice<K extends keyof DisplaySettings>(props: {
 }
 
 /** 表示オプション（設定パネル） */
-export function SettingsPanel({ score, settings, update, reset, onDownload, onClose }: Props) {
+export function SettingsPanel({ score, settings, update, reset, onDownload, onSaveProject, onClose }: Props) {
   const zoomValue = settings.zoom === 'fit' ? 100 : settings.zoom;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -222,6 +223,11 @@ export function SettingsPanel({ score, settings, update, reset, onDownload, onCl
           <button className="button" onClick={onDownload}>
             MusicXMLとして書き出す
           </button>
+          {onSaveProject && (
+            <button className="button" onClick={onSaveProject}>
+              プロジェクトをファイルに保存
+            </button>
+          )}
         </div>
       </section>
     </div>
