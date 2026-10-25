@@ -147,6 +147,14 @@ describe('MusicXMLの読み込み', () => {
       ),
     );
     expect(r.warnings).toEqual([]);
+    // 印のない短い小節が続くだけなら、合わせて1小節になっても警告する（読み取りソフトの誤り）
+    const plain = importMusicXml(
+      score(
+        `<measure number="1">${ATTR()}${N('C', 5, 8)}</measure><measure number="2">${N('C', 5, 4)}</measure>` +
+          `<measure number="3">${N('D', 5, 4)}</measure><measure number="4">${N('E', 5, 8)}</measure>`,
+      ),
+    );
+    expect(plain.warnings.map((w) => w.measure)).toEqual([1, 2]);
   });
 
   it('対応していない要素は一覧に出して読み込みを続ける', () => {

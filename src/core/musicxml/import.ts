@@ -976,12 +976,25 @@ function checkMeasureLengths(ctx: Ctx, measures: MeasureMeta[], notes: Note[]) {
     const prev = actual.get(mi);
     if (!prev || cmp(end, prev) > 0) actual.set(mi, end);
   }
-  // 反復記号などで1小節を2つに分けた片方：隣の小節と合わせるとちょうど1小節になる
+  // 反復記号などで1小節を2つに分けた片方：隣の小節と合わせるとちょうど1小節になり、
+  // 間に反復記号か括弧の切れ目があるか、どちらかが数えない小節（implicit）のとき。
+  // 印のない短い小節が続くだけ（読み取りソフトの誤りに多い）は分けた小節とみなさない
+  const splitMark = (first: MeasureMeta, second: MeasureMeta) =>
+    !!first.implicit ||
+    !!second.implicit ||
+    first.repeat === 'end' ||
+    first.repeat === 'both' ||
+    second.repeat === 'start' ||
+    second.repeat === 'both' ||
+    !!first.ending ||
+    !!second.ending;
   const splitHalf = (mi: number) =>
     [mi - 1, mi + 1].some((other) => {
       const a = actual.get(mi);
       const b = actual.get(other);
-      return a && b && measures[other] && cmp(add(a, b), lengths[mi]) === 0;
+      if (!a || !b || !measures[other] || cmp(add(a, b), lengths[mi]) !== 0) return false;
+      const [first, second] = other < mi ? [measures[other], measures[mi]] : [measures[mi], measures[other]];
+      return splitMark(first, second);
     });
   const reported = new Set<number>();
   for (const [key, end] of ends) {
