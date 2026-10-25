@@ -12,8 +12,8 @@ describe('テスト素材の読み込み', () => {
     expect(r.score.measures[0].key).toEqual({ fifths: 3, mode: 'major' });
     expect(r.score.measures).toHaveLength(272);
     expect(r.ignored.filter((i) => !i.expected)).toEqual([]);
-    // 繰り返しの前後で分割された小節だけが「拍が合わない」
-    expect(r.warnings.map((w) => w.code)).toEqual(['measure-length']);
+    // 繰り返しの前後で分割された小節（2拍＋1拍）は、拍が合わない小節に数えない
+    expect(r.warnings.map((w) => w.code)).toEqual([]);
   });
 
   it('合成オーケストラ：移調楽器を実音で読み、実音の調号がそろう', () => {

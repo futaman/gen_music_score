@@ -968,12 +968,27 @@ function checkMeasureLengths(ctx: Ctx, measures: MeasureMeta[], notes: Note[]) {
     if (m.time) time = m.time;
     return frac(time.beats, time.beatType);
   });
+  // 小節の実際の長さ（1声部目の終わりのいちばん遅いところ）
+  const actual = new Map<number, Fraction>();
+  for (const [key, end] of ends) {
+    if (!voiceOne(key)) continue;
+    const mi = Number(key.split('|')[1]);
+    const prev = actual.get(mi);
+    if (!prev || cmp(end, prev) > 0) actual.set(mi, end);
+  }
+  // 反復記号などで1小節を2つに分けた片方：隣の小節と合わせるとちょうど1小節になる
+  const splitHalf = (mi: number) =>
+    [mi - 1, mi + 1].some((other) => {
+      const a = actual.get(mi);
+      const b = actual.get(other);
+      return a && b && measures[other] && cmp(add(a, b), lengths[mi]) === 0;
+    });
   const reported = new Set<number>();
   for (const [key, end] of ends) {
     const mi = Number(key.split('|')[1]);
     const m = measures[mi];
     if (!m || reported.has(mi)) continue;
-    const isPickup = m.implicit || (mi === 0 && lt(end, lengths[mi]));
+    const isPickup = m.implicit || (mi === 0 && lt(end, lengths[mi])) || splitHalf(mi);
     if (
       cmp(end, lengths[mi]) > 0 ||
       (!isPickup && lt(end, lengths[mi]) && mi !== measures.length - 1 && voiceOne(key))

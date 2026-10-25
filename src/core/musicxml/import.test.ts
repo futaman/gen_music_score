@@ -137,6 +137,18 @@ describe('MusicXMLの読み込み', () => {
     expect(r.score.notes).toHaveLength(2);
   });
 
+  it('反復記号などで1小節を2つに分けた小節（合わせて1小節）は、拍が合わない小節に数えない', () => {
+    // 4/4 を「3拍＋1拍」に分けた2・3小節目。最後の小節は短くてもよい
+    const r = importMusicXml(
+      score(
+        `<measure number="1">${ATTR()}${N('C', 5, 8)}</measure><measure number="2">${N('C', 5, 6)}</measure>` +
+          `<measure number="X1" implicit="yes">${N('D', 5, 2)}</measure><measure number="3">${N('E', 5, 8)}</measure>` +
+          `<measure number="4">${N('F', 5, 4)}</measure>`,
+      ),
+    );
+    expect(r.warnings).toEqual([]);
+  });
+
   it('対応していない要素は一覧に出して読み込みを続ける', () => {
     const r = importMusicXml(
       score(
