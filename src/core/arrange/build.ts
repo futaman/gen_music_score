@@ -5,6 +5,8 @@ import { ENSEMBLES, getInstrument } from '../instruments';
 import { newId } from '../model/rhythm';
 import { buildScoreIndex, type ScoreIndex } from '../model/scoreIndex';
 import type { Arrangement, ClefChange, Direction, Note, Part, Role, Score } from '../model/types';
+import { notationFor } from '../model/notation';
+import { add, cmp, frac, lt, toNumber } from '../theory/fraction';
 import { midi, type Pitch } from '../theory/pitch';
 import { extractMelody, fixTies, pickTop, type HeadPicker } from '../transpose/transpose';
 import type { Section } from './assign';
@@ -177,6 +179,7 @@ export function buildArrangedScore(
           origin: 'generated',
           derivedFrom: { sectionId: sec.id, sourcePartId: partId, sourceNoteIds: [n.id] },
         }));
+        line = windIdioms(line, pizzicato(index.score, partId));
         // 区間で抜けている小節（元のパートに音符がない小節）は休符で埋める
         const have = new Set(line.map((n) => n.measure));
         for (let mi = sec.start; mi < sec.end; mi++)
@@ -277,6 +280,64 @@ function restMeasures(index: ScoreIndex, partId: string, start: number, end: num
     });
   }
   return out;
+}
+
+/** 元のパートの pizz.（arco まで）の範囲にある音か */
+function pizzicato(score: Score, partId: string): (n: Note) => boolean {
+  const marks = score.directions
+    .filter((d) => d.partId === partId && d.kind === 'text' && /^\s*(pizz|arco)/i.test(d.value))
+    .map((d) => ({ at: d.measure + toNumber(d.onset) / 1000, on: /^\s*pizz/i.test(d.value) }))
+    .sort((a, b) => a.at - b.at);
+  return (n) => {
+    const at = n.measure + toNumber(n.onset) / 1000;
+    let on = false;
+    for (const m of marks) if (m.at <= at) on = m.on;
+    return on;
+  };
+}
+
+const FAST = frac(1, 16);
+
+/**
+ * 管楽器向けに直す：トレモロの記号は外して長い音のまま、同じ高さの速い刻み（16分音符以下が4つ以上）は1つの長い音にまとめる。
+ * pizz. の所の音にはスタッカートを付ける
+ */
+export function windIdioms(line: Note[], pizzAt: (n: Note) => boolean = () => false): Note[] {
+  const sorted = [...line].sort((a, b) => a.measure - b.measure || cmp(a.onset, b.onset));
+  const fast = (n: Note) => n.heads.length === 1 && !n.grace && !n.tuplets?.length && !lt(FAST, n.duration);
+  const out: Note[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const n = sorted[i];
+    if (fast(n) && !n.heads[0].tie) {
+      let j = i;
+      let total = n.duration;
+      while (j + 1 < sorted.length) {
+        const x = sorted[j + 1];
+        if (
+          !fast(x) ||
+          x.heads[0].tie ||
+          x.measure !== n.measure ||
+          cmp(x.onset, add(n.onset, total)) !== 0 ||
+          midi(x.heads[0].pitch) !== midi(n.heads[0].pitch)
+        )
+          break;
+        total = add(total, x.duration);
+        j++;
+      }
+      const notation = notationFor(total);
+      if (j - i + 1 >= 4 && notation) {
+        out.push({ ...n, duration: total, notation, beams: undefined, tremolo: undefined, slurs: undefined });
+        i = j;
+        continue;
+      }
+    }
+    out.push(n.tremolo ? { ...n, tremolo: undefined } : n);
+  }
+  return out.map((n) =>
+    n.heads.length && !n.grace && pizzAt(n) && !n.articulations.includes('staccato')
+      ? { ...n, articulations: [...n.articulations, 'staccato'] }
+      : n,
+  );
 }
 
 /** 始まりと終わりの両方が残っていないスラーを外す */

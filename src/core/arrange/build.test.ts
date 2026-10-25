@@ -228,3 +228,51 @@ describe('割当表の変更（作り直し）', () => {
     expect(r.result.changed).toEqual([0]);
   });
 });
+
+describe('区間の区切りを変える', () => {
+  it('分けても楽譜は変わらず、つなぐと後ろの部分を前の割当で作り直す', async () => {
+    const { createArrangement, splitSection, mergeWithNext } = await import('./workspace');
+    const src = build({
+      a: { instrument: 'violin', measures: ['G5:1', 'A5:1', 'B5:1', 'C6:1'] },
+      b: { instrument: 'cello', measures: ['C3:1', 'D3:1', 'E3:1', 'F3:1'] },
+    });
+    const { arrangement, score } = createArrangement(src, 'wind-quintet', { starts: [0] });
+    const split = splitSection(src, arrangement, 'sec1', 2);
+    expect(split.sections.map((s) => [s.start, s.end])).toEqual([
+      [0, 2],
+      [2, 4],
+    ]);
+    expect(new Set(split.sections.map((s) => s.id)).size).toBe(2);
+    // 後ろの区間のフルートを休みにしてから、つなぐ
+    const second = split.sections[1];
+    const { reassign } = await import('./workspace');
+    const r1 = reassign(src, split, score, second.id, 'flute', []);
+    expect(pitches(r1.result.score, 'flute', 3)).toEqual(['r']);
+    const m = mergeWithNext(src, r1.arrangement, r1.result.score, 'sec1')!;
+    expect(m.arrangement.sections.map((s) => [s.start, s.end])).toEqual([[0, 4]]);
+    expect(pitches(m.result.score, 'flute', 3)).toEqual(pitches(score, 'flute', 3)); // 前の割当で作り直し
+  });
+});
+
+describe('管楽器向けの直し', () => {
+  it('同じ高さの16分音符の刻みは長い音に、トレモロの記号は外す、pizz. はスタッカート', async () => {
+    const { windIdioms } = await import('./build');
+    const src = build({
+      a: { instrument: 'violin', measures: ['C5:16 C5:16 C5:16 C5:16 D5:16 E5:16 F5:16 G5:16 A5:4 B5:4'] },
+    });
+    const notes = src.notes.map((n, i) => (i === 8 ? { ...n, tremolo: { type: 'single' as const, marks: 3 } } : n));
+    const out = windIdioms(notes, (n) => n.onset.num / n.onset.den >= 0.75);
+    expect(out.map((n) => `${formatPitch(n.heads[0].pitch)}:${n.duration.num}/${n.duration.den}`)).toEqual([
+      'C5:1/4',
+      'D5:1/16',
+      'E5:1/16',
+      'F5:1/16',
+      'G5:1/16',
+      'A5:1/4',
+      'B5:1/4',
+    ]);
+    expect(out.every((n) => !n.tremolo)).toBe(true);
+    expect(out.find((n) => formatPitch(n.heads[0].pitch) === 'B5')?.articulations).toContain('staccato');
+    expect(out.find((n) => formatPitch(n.heads[0].pitch) === 'A5')?.articulations).not.toContain('staccato');
+  });
+});

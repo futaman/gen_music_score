@@ -2,7 +2,8 @@
 
 import type { Score } from '../model/types';
 
-export type HistoryEntry = { score: Score; changed: number[] | 'all'; label: string };
+/** extra：楽譜と一緒に戻したい状態（編曲の割当表など） */
+export type HistoryEntry = { score: Score; changed: number[] | 'all'; label: string; extra?: unknown };
 
 export class History {
   private past: HistoryEntry[] = [];
@@ -16,16 +17,16 @@ export class History {
     this.future = [];
   }
 
-  /** 1つ戻す。current は今の楽譜（やり直し用に積む） */
-  undo(current: Score): HistoryEntry | undefined {
+  /** 1つ戻す。current は今の楽譜、currentExtra は今の extra（やり直し用に積む） */
+  undo(current: Score, currentExtra?: unknown): HistoryEntry | undefined {
     const e = this.past.pop();
-    if (e) this.future.push({ ...e, score: current });
+    if (e) this.future.push({ ...e, score: current, extra: currentExtra });
     return e;
   }
 
-  redo(current: Score): HistoryEntry | undefined {
+  redo(current: Score, currentExtra?: unknown): HistoryEntry | undefined {
     const e = this.future.pop();
-    if (e) this.past.push({ ...e, score: current });
+    if (e) this.past.push({ ...e, score: current, extra: currentExtra });
     return e;
   }
 

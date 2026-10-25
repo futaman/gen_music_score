@@ -770,3 +770,14 @@ a {
   fill: #c2410c;
   color: #c2410c;
 }
+
+.arrange-table .row-tools {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.button.small {
+  padding: 2px 8px;
+  min-height: 28px;
+  font-size: 12px;
+}

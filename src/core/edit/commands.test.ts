@@ -208,6 +208,17 @@ describe('元に戻す・やり直し', () => {
     const back = h.redo(cur)!.score;
     expect(back).not.toBe(cur);
   });
+
+  it('楽譜と一緒に extra（編曲の割当表など）も戻る・やり直せる', () => {
+    const h = new History(100);
+    const s0 = makeScore([['C5']]);
+    const s1 = makeScore([['D5']]);
+    h.push({ score: s0, changed: [0], label: '割当の変更', extra: 'A' });
+    const u = h.undo(s1, 'B')!;
+    expect([u.score, u.extra]).toEqual([s0, 'A']);
+    const r = h.redo(s0, 'A')!;
+    expect([r.score, r.extra]).toEqual([s1, 'B']);
+  });
 });
 
 describe('鍵盤で入力', () => {

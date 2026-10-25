@@ -33,6 +33,8 @@ export type ChunkOptions = {
   multiRest?: boolean;
   /** 印刷用：ページの頭（1ページ目は曲名・作曲者・パート名、2ページ目以降はパート名と曲名） */
   pageHead?: { title: string; subtitle?: string; composer?: string; partName?: string };
+  /** 印刷用：この小節の前で段を変える／ページを変える（Verovio の breaks: 'encoded' で使う） */
+  breaks?: { system: Set<number>; page: Set<number> };
 };
 
 const MEI_DUR: Record<NoteType, string> = {
@@ -102,6 +104,8 @@ export function chunkToMei(index: ScoreIndex, opts: ChunkOptions): string {
   for (let mi = opts.start; mi < opts.end; mi++) {
     const meta = score.measures[mi];
     if (mi > opts.start && (meta.key || meta.time)) body.push(w.scoreDefChange(mi));
+    if (opts.breaks?.page.has(mi)) body.push('<pb/>');
+    else if (opts.breaks?.system.has(mi)) body.push('<sb/>');
     const run = opts.multiRest && !inEnding ? restRun(index, staves, mi, opts.end) : 1;
     if (run >= 2) {
       body.push(w.multiRest(mi, run));

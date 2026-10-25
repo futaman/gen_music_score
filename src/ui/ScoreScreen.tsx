@@ -35,7 +35,7 @@ import {
 import { buildScoreIndex } from '../core/model/scoreIndex';
 import type { Arrangement, Note, NoteType, Score } from '../core/model/types';
 import { checkArrangement } from '../core/arrange/check';
-import { reassign } from '../core/arrange/workspace';
+import { mergeWithNext, reassign, splitSection } from '../core/arrange/workspace';
 import { ArrangePanel } from './ArrangePanel';
 import { exportMusicXml } from '../core/musicxml/export';
 import { buildTimeline, type Timeline } from '../core/playback/timeline';
@@ -103,7 +103,8 @@ export function ScoreScreen({
   const [panel, setPanel] = useState<
     'settings' | 'transpose' | 'range' | 'export' | 'arrange' | 'arrange-warnings' | null
   >(null);
-  const editor = useEditor(original);
+  // 編曲の割当表は楽譜と一緒に「元に戻す」で戻す
+  const editor = useEditor<Arrangement>(original, arrange?.arrangement);
   const { score } = editor;
   useEffect(() => {
     onScoreChange?.(score);
@@ -183,9 +184,9 @@ export function ScoreScreen({
 
   // ---- 編集 ----
   const apply = useCallback(
-    (r: EditResult, label: string) => {
+    (r: EditResult, label: string, extra?: Arrangement) => {
       if (player.state === 'playing') player.pause();
-      const message = editor.apply(r, label);
+      const message = editor.apply(r, label, extra);
       if (r.select) setSelection(r.select);
       const over = r.changed === 'all' ? [] : overfullVoices(r.score, r.changed);
       setToast(
@@ -369,7 +370,12 @@ export function ScoreScreen({
   // ---- 警告 ----
   const issues = useMemo(() => checkRanges(score, shownParts), [score, shownParts]);
   const arrangeSource = arrange?.source;
-  const arrangement = arrange?.arrangement;
+  const arrangement = arrange ? editor.extra : undefined;
+  const onArrangementChange = arrange?.onChange;
+  const savedArrangement = arrange?.arrangement;
+  useEffect(() => {
+    if (arrangement && arrangement !== savedArrangement) onArrangementChange?.(arrangement);
+  }, [arrangement, savedArrangement, onArrangementChange]);
   const arrangeWarnings = useMemo(
     () => (arrangeSource && arrangement ? checkArrangement(score, { source: arrangeSource, arrangement }) : []),
     [arrangeSource, arrangement, score],
@@ -585,7 +591,7 @@ export function ScoreScreen({
       {(panel === 'arrange' || panel === 'arrange-warnings') && (
         <ArrangePanel
           score={score}
-          arrangement={arrange?.arrangement}
+          arrangement={arrangement}
           source={arrange?.source}
           warnings={arrangeWarnings}
           initialTab={panel === 'arrange-warnings' ? 'warnings' : 'table'}
@@ -594,12 +600,19 @@ export function ScoreScreen({
             onCreateArrangement?.(ensembleId, rotate);
           }}
           onReassign={(sectionId, inst, units) => {
-            if (!arrange) return;
-            const r = reassign(arrange.source, arrange.arrangement, score, sectionId, inst, units);
-            arrange.onChange(r.arrangement);
-            if (r.result.changed !== 'all' && r.result.changed.length === 0)
-              setToast(r.result.message ?? '手で直した小節だけなので、作り直しませんでした');
-            else apply(r.result, '割当の変更');
+            if (!arrange || !arrangement) return;
+            const r = reassign(arrange.source, arrangement, score, sectionId, inst, units);
+            apply(r.result, '割当の変更', r.arrangement);
+          }}
+          onSplit={(sectionId, at) => {
+            if (!arrange || !arrangement) return;
+            const next = splitSection(arrange.source, arrangement, sectionId, at);
+            apply({ score, changed: [] }, '区間を分ける', next);
+          }}
+          onMerge={(sectionId) => {
+            if (!arrange || !arrangement) return;
+            const r = mergeWithNext(arrange.source, arrangement, score, sectionId);
+            if (r) apply(r.result, '区間をつなぐ', r.arrangement);
           }}
           onDelete={
             arrange

@@ -6,7 +6,8 @@ import type { EditResult } from '../edit/commands';
 import { buildScoreIndex } from '../model/scoreIndex';
 import type { Arrangement, Note, Score } from '../model/types';
 import { fixTies } from '../transpose/transpose';
-import { planArrangement, type PlanOptions } from './assign';
+import { analyzeSection, estimateRoles, sourceUnits } from './analyze';
+import { planArrangement, type PlanOptions, type Section } from './assign';
 import { buildArrangedScore } from './build';
 
 /** 編曲案（割当表）と、それから作った編成の楽譜 */
@@ -75,4 +76,38 @@ export function reassign(
     },
     kept,
   };
+}
+
+/** 区間の役割を元の楽譜から出し直す（区切りを変えたとき） */
+function withRoles(source: Score, sec: Section): Section {
+  const index = buildScoreIndex(source);
+  const a = analyzeSection(index, sourceUnits(index), sec.start, sec.end);
+  return { ...sec, roles: estimateRoles(a.stats) };
+}
+
+/** 区間を at の小節（区間の途中）で2つに分ける。割当はどちらも元のまま（楽譜は変わらない） */
+export function splitSection(source: Score, arrangement: Arrangement, sectionId: string, at: number): Arrangement {
+  const i = arrangement.sections.findIndex((s) => s.id === sectionId);
+  const sec = arrangement.sections[i];
+  if (!sec || at <= sec.start || at >= sec.end) return arrangement;
+  const ids = new Set(arrangement.sections.map((s) => s.id));
+  let n = arrangement.sections.length + 1;
+  while (ids.has(`sec${n}`)) n++;
+  const first = withRoles(source, { ...sec, end: at });
+  const second = withRoles(source, { ...sec, id: `sec${n}`, start: at, mapping: { ...sec.mapping } });
+  const sections = [...arrangement.sections];
+  sections.splice(i, 1, first, second);
+  return { ...arrangement, sections };
+}
+
+/** 区間を次の区間とつなぐ。割当は前の区間のものにそろえ、後ろの部分を作り直す（手で直した小節は残す） */
+export function mergeWithNext(source: Score, arrangement: Arrangement, current: Score, sectionId: string) {
+  const i = arrangement.sections.findIndex((s) => s.id === sectionId);
+  const sec = arrangement.sections[i];
+  const next = arrangement.sections[i + 1];
+  if (!sec || !next) return null;
+  const merged = withRoles(source, { ...sec, end: next.end });
+  const sections = [...arrangement.sections];
+  sections.splice(i, 2, merged);
+  return reassign(source, { ...arrangement, sections }, current, merged.id);
 }

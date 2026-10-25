@@ -24,6 +24,10 @@ type Props = {
   initialTab?: 'table' | 'warnings';
   onCreate?: (ensembleId: string, rotateMelody: boolean) => void;
   onReassign: (sectionId: string, instrument?: string, unitIds?: string[]) => void;
+  /** 区間を at（小節index）で分ける */
+  onSplit: (sectionId: string, at: number) => void;
+  /** 区間を次の区間とつなぐ */
+  onMerge: (sectionId: string) => void;
   onDelete?: () => void;
   onJump: (measure: number, partId?: string) => void;
   onClose: () => void;
@@ -115,14 +119,47 @@ export function ArrangePanel(props: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {arrangement.sections.map((sec) => {
+                      {arrangement.sections.map((sec, si) => {
                         const units = Object.keys(sec.roles);
+                        const split = () => {
+                          if (sec.end - sec.start < 2) return;
+                          const input = prompt(
+                            `何小節目から新しい区間にしますか（${m(sec.start + 1)}〜${m(sec.end - 1)}）`,
+                            m(Math.floor((sec.start + sec.end) / 2)),
+                          )?.trim();
+                          if (!input) return;
+                          let at = -1;
+                          for (let i = sec.start + 1; i < sec.end; i++) if (m(i) === input) at = i;
+                          if (at < 0) alert(`${input}小節目はこの区間の途中にありません。`);
+                          else props.onSplit(sec.id, at);
+                        };
                         return (
                           <tr key={sec.id}>
                             <th scope="row">
                               <button className="link" onClick={() => props.onJump(sec.start)}>
                                 {m(sec.start)}–{m(sec.end - 1)}
                               </button>
+                              <span className="row-tools">
+                                <button
+                                  className="button small"
+                                  onClick={split}
+                                  disabled={sec.end - sec.start < 2}
+                                  aria-label={`${m(sec.start)}小節からの区間を分ける`}
+                                  title="この区間を2つに分ける"
+                                >
+                                  分ける
+                                </button>
+                                {si < arrangement.sections.length - 1 && (
+                                  <button
+                                    className="button small"
+                                    onClick={() => props.onMerge(sec.id)}
+                                    aria-label={`${m(sec.start)}小節からの区間を次とつなぐ`}
+                                    title="次の区間とつなぐ（割当はこの区間にそろえる）"
+                                  >
+                                    ↓つなぐ
+                                  </button>
+                                )}
+                              </span>
                             </th>
                             {score.parts.map((p) => {
                               const cur = sec.mapping[p.id]?.[0] ?? '';

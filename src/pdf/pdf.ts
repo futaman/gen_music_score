@@ -7,7 +7,29 @@ import 'svg2pdf.js';
 import { chunkToMei, staffLayout } from '../core/mei/chunk';
 import type { PitchMode } from '../core/model/display';
 import type { ScoreIndex } from '../core/model/scoreIndex';
+import type { Note } from '../core/model/types';
+import { toNumber } from '../core/theory/fraction';
 import { Renderer } from '../render/renderer';
+import { choosePageBreaks, systemsFromSvg } from './breaks';
+
+/** 小節 measure の前で譜めくりできるか：前の小節の終わりか、この小節の頭が休み */
+function restAt(index: ScoreIndex, partId: string) {
+  const byMeasure = index.notes.get(partId) ?? [];
+  const sounding = (ns: Note[] | undefined) => (ns ?? []).filter((n) => !n.grace && n.staff === 1);
+  return (measure: number) => {
+    const prev = sounding(byMeasure[measure - 1]);
+    const cur = sounding(byMeasure[measure]);
+    const last = prev.reduce<Note | undefined>(
+      (a, n) => (!a || toNumber(n.onset) >= toNumber(a.onset) ? n : a),
+      undefined,
+    );
+    const first = cur.reduce<Note | undefined>(
+      (a, n) => (!a || toNumber(n.onset) < toNumber(a.onset) ? n : a),
+      undefined,
+    );
+    return (last ? last.heads.length === 0 : true) || (first ? first.heads.length === 0 : true);
+  };
+}
 
 export type PaperSize = 'a4' | 'a4-landscape' | 'b4' | 'a3' | 'letter';
 
@@ -132,18 +154,31 @@ export async function makePdf(job: PdfJob): Promise<Blob> {
     for (const [i, d] of job.documents.entries()) {
       job.onProgress?.(i, total);
       const staffCount = staffLayout(job.index, d.partIds).length;
-      const mei = chunkToMei(job.index, {
+      const meiOptions = {
         start: 0,
         end: job.index.score.measures.length,
         partIds: d.partIds,
         pitchMode: d.pitchMode,
-        labels: d.partIds.length > 1 ? 'full' : 'none',
+        labels: d.partIds.length > 1 ? ('full' as const) : ('none' as const),
         multiRest: d.partIds.length === 1,
         pageHead: { title: job.title, subtitle: job.subtitle, composer: job.composer, partName: d.partName },
-      });
-      const r = await renderer.render(mei, pdfVerovioOptions(job.paper, staffCount), true);
+      };
+      const options = pdfVerovioOptions(job.paper, staffCount);
+      let r = await renderer.render(chunkToMei(job.index, meiOptions), options, true);
       if (r.error || !r.pages) throw new Error(`楽譜を描けませんでした：${r.error ?? ''}`);
-      for (const [pi, page] of r.pages.entries()) {
+      // パート譜：休みの位置で改ページするように、段とページの切れ目を決めて描き直す
+      if (d.partIds.length === 1 && r.pages.length > 1) {
+        const { starts, perPage } = systemsFromSvg(r.pages);
+        const rest = restAt(job.index, d.partIds[0]);
+        const page = choosePageBreaks(starts, (p) => (p === 0 ? perPage[0] : Math.max(...perPage.slice(1))), rest);
+        const again = await renderer.render(
+          chunkToMei(job.index, { ...meiOptions, breaks: { system: new Set(starts.slice(1)), page: new Set(page) } }),
+          { ...options, breaks: 'encoded' },
+          true,
+        );
+        if (!again.error && again.pages) r = again;
+      }
+      for (const [pi, page] of (r.pages ?? []).entries()) {
         const svg = new DOMParser().parseFromString(page, 'image/svg+xml').documentElement as unknown as SVGSVGElement;
         if (prepareSvg(svg) && !fontReady) {
           const data = await loadJapaneseFont();

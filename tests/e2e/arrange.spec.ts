@@ -27,6 +27,26 @@ test('編曲案を作り、割当表を直し、警告から小節へ移動で�
   const oboe = dialog.getByLabel(/小節からのオーボエ$/).first();
   await oboe.selectOption({ label: await oboe.locator('option', { hasText: 'Violoncello' }).first().innerText() });
   await expect(page.getByRole('button', { name: '元に戻す' })).toBeEnabled();
+  const changed = await oboe.inputValue();
+  // 元に戻すと割当表も戻り、やり直すと戻る
+  await dialog.getByRole('button', { name: '閉じる' }).click();
+  await page.getByRole('button', { name: '元に戻す' }).click();
+  await page.getByRole('button', { name: '編曲', exact: true }).click();
+  await expect(oboe).not.toHaveValue(changed);
+  await dialog.getByRole('button', { name: '閉じる' }).click();
+  await page.getByRole('button', { name: 'やり直し' }).click();
+  await page.getByRole('button', { name: '編曲', exact: true }).click();
+  await expect(oboe).toHaveValue(changed);
+
+  // 区間を分けて、つなぎ直す
+  const rows = dialog.locator('.arrange-table tbody tr');
+  const before = await rows.count();
+  page.once('dialog', (d) => void d.accept('4'));
+  await dialog.getByRole('button', { name: /^0小節からの区間を分ける$/ }).click();
+  await expect(rows).toHaveCount(before + 1);
+  await expect(rows.nth(1).locator('th .link')).toHaveText('4–7');
+  await dialog.getByRole('button', { name: /^0小節からの区間を次とつなぐ$/ }).click();
+  await expect(rows).toHaveCount(before);
   await dialog.getByRole('button', { name: '閉じる' }).click();
 
   // 警告の一覧から小節へ
