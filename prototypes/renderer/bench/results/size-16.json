@@ -1,0 +1,56 @@
+[
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "PC",
+  "cpu": "1x",
+  "chunks": 60,
+  "firstPaintMs": 3025,
+  "pitchMedianMs": 62,
+  "pitchMaxMs": 124,
+  "relayoutMedianMs": 137,
+  "relayoutMaxMs": 184,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": true,
+  "breakdown": [
+   "pitch: worker 12 / 往復 13 / DOM 14 / 合計 62 (fast)",
+   "relayout: worker 85 / 往復 86 / DOM 15 / 合計 137 (load)"
+  ]
+ },
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "タブレット",
+  "cpu": "4x",
+  "chunks": 60,
+  "firstPaintMs": 9504,
+  "pitchMedianMs": 291,
+  "pitchMaxMs": 409,
+  "relayoutMedianMs": 422,
+  "relayoutMaxMs": 502,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": false,
+  "breakdown": [
+   "pitch: worker 11 / 往復 19 / DOM 65 / 合計 291 (fast)",
+   "relayout: worker 102 / 往復 106 / DOM 92 / 合計 492 (load)"
+  ]
+ },
+ {
+  "file": "beethoven-op18-1.mxl",
+  "device": "スマホ",
+  "cpu": "4x",
+  "chunks": 60,
+  "firstPaintMs": 8915,
+  "pitchMedianMs": 278,
+  "pitchMaxMs": 375,
+  "relayoutMedianMs": 355,
+  "relayoutMaxMs": 397,
+  "firstOk": true,
+  "pitchOk": true,
+  "relayoutOk": false,
+  "breakdown": [
+   "pitch: worker 12 / 往復 18 / DOM 72 / 合計 278 (fast)",
+   "relayout: worker 88 / 往復 90 / DOM 90 / 合計 355 (load)"
+  ]
+ }
+]

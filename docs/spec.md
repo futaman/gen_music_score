@@ -53,14 +53,16 @@ MVPは「MusicXMLを読み込み、移調して、表示・再生・書き出し
 | 移調（2モード） | 実音移調と、移調楽器向け記譜 | MVP |
 | 再生 | 全体・パート単位で試聴 | MVP |
 | 書き出し | PDF・MusicXML | MVP |
-| 半自動編曲 | オケ→木管5重奏の割当案と修正 | v2 |
-| 音域・演奏性チェック | 音域外などを警告表示 | v2 |
-| 単旋律の抽出 | ピアノ譜から1声部を取り出す | v2 |
-| プロジェクト保存 | Googleドライブに保存・再開 | v2 |
-| MIDI読み込み | クオンタイズ・声部分離をして取り込み | v3 |
-| PDF/画像読み込み | OMR（楽譜認識）でMusicXML化 | v3 |
 | 音符の編集 | 音高・音価・記号・範囲操作を手で直す（3端末対応） | MVP |
 | 表示オプション | レイアウト・音名・色分けなどを設定で切替 | MVP |
+| 音域チェック | 音域外の音を赤く表示し、オクターブ移動の候補を出す | MVP |
+| 単旋律の抽出（最小版） | ピアノ譜の右手から最高音を拾って新しいパートを作り、音ごとに差し替え | MVP |
+| 端末内保存・ファイル保存 | IndexedDBへ自動保存。プロジェクトJSONを「ファイルに保存／開く」 | MVP |
+| 半自動編曲 | オケ→木管5重奏の割当案と修正 | v2 |
+| 演奏性チェック | 息継ぎ・跳躍・ホルン高音・音域端などを警告表示 | v2 |
+| プロジェクト保存（クラウド） | Googleドライブに保存・再開 | v2 |
+| MIDI読み込み | クオンタイズ・声部分離をして取り込み | v3 |
+| PDF/画像読み込み | OMR（楽譜認識）でMusicXML化 | v3 |
 
 ## 入力
 
@@ -89,6 +91,8 @@ MVPは「MusicXMLを読み込み、移調して、表示・再生・書き出し
 ### モードB：移調楽器向け記譜（鳴る音はそのまま）
 
 - 楽器を選ぶと、記譜音への変換と調号の書き換えを自動で行う
+- 楽器を変えるときは**元のパートを複製して楽器を指定する**（元のパートは残す）。ピアノ等の和音パートから単旋律楽器のパートを作るときは、単旋律の抽出を同時に行う
+- 調号は♯系・♭系のうち**記号の少ない方**を既定とし（同数なら♯系）、パートごとに手動で切り替えられる
 - 対応楽器（初期）：B♭クラリネット（長2度上に記譜）、Aクラリネット（短3度上）、F管ホルン（完全5度上）、B♭トランペット（長2度上）、E♭アルトサックス（長6度上）
 - 表示は「実音スコア」と「移調スコア」をワンタップで切り替え
 
@@ -105,7 +109,7 @@ MVPは「MusicXMLを読み込み、移調して、表示・再生・書き出し
 ### 移調後のチェック
 
 - 対象楽器の音域外の音を赤く表示し、オクターブ移動の候補を出す
-- 移調を元に戻すと元の楽譜と完全一致すること（テストで保証）
+- 移調を元に戻すと元の楽譜と完全一致すること（テストで保証）。異名同音の調への自動置換は綴りの情報を捨てる変換なので、完全一致は**自動置換オフ**の条件で保証し、オンのときは実音（MIDI番号）の一致を保証する
 
 ## 編曲機能（半自動）
 
@@ -177,9 +181,14 @@ MVPは「MusicXMLを読み込み、移調して、表示・再生・書き出し
 
 ### ルール
 
+- 音価を変えたときは**上書き方式**（MuseScoreと同じ）：長くすると後ろの音を削り、短くすると休符で埋める。後ろへずらす「挿入モード」はv2
+- 音名キー・鍵盤パネルで入れた音は、直前の音に最も近いオクターブに置く
+- 選択は「単音」と「パート×小節の矩形範囲」の2種類
+- 小節の挿入・削除は全パート同時に行う。調号を変えたときは実音を保つ（臨時記号が付く）。拍子を変えたときは音を詰め直さず、拍の過不足を警告する
+- 和音は `polyphonic` の楽器（ピアノ等）だけに置ける
 - 小節の拍が足りなければ休符で自動的に埋め、超えたら赤く表示して警告する（自動では切らない）
 - 編集するたびに音域・演奏性の警告を再計算する
-- 元に戻す／やり直しは100回まで。保存後も同じセッション中は戻せる
+- 元に戻す／やり直しは100回まで。保存後も同じセッション中は戻せる（リロード後は戻せない）
 - 編曲で生成した音と、手で直した音を区別して保持する（割当をやり直しても手直しを消さない。消す場合は確認を出す）
 
 ## 出力
@@ -250,7 +259,7 @@ PC・タブレット・スマホの3端末で全機能（編曲を含む）を�
 | 層 | 候補 | 役割 |
 | --- | --- | --- |
 | フロント | React + TypeScript（Vite） | 画面全体 |
-| 楽譜描画 | Verovio（WebAssembly版）が第一候補。試作で性能が足りなければOpenSheetMusicDisplay | MusicXML→SVG表示、PDF化の元 |
+| 楽譜描画 | **Verovio（WebAssembly版）に決定**。数小節ずつのチャンクに分けて描画し、音高だけの変更は小節単位で差し替える（`docs/decisions/0001-renderer.md`） | MusicXML→SVG表示、PDF化の元 |
 | 音楽理論計算 | 自作のTypeScriptモジュール（音程計算はtonal.js等を補助に） | 移調・音域判定・縮約・割当 |
 | 再生 | Tone.js + 楽器サンプル | 試聴 |
 | 保存 | Googleドライブ（プロジェクトJSON＋MusicXML） | 保存・共有 |
@@ -266,35 +275,86 @@ PC・タブレット・スマホの3端末で全機能（編曲を含む）を�
 
 ### データモデル
 
+**正式な型は `src/core/model/types.ts`**（下は要点。実装で、表示用の音符の種類・連桁・保持のみの要素・パートごとの移調などを足している）。
+
 保存ファイルには版番号（schemaVersion）を入れ、形を変えたときは古い版を変換して読む。音価は小数ではなく**分数**で持つ（3連符などで誤差を出さないため）。音高は「音名・変化記号・オクターブ」で持ち、MIDI番号は計算で出す。
 
 ```ts
-type Pitch = { step: 'C'|'D'|'E'|'F'|'G'|'A'|'B'; alter: -2|-1|0|1|2; octave: number } // 実音
+type Step = 'C'|'D'|'E'|'F'|'G'|'A'|'B';
+type Pitch = { step: Step; alter: -2|-1|0|1|2; octave: number } // 実音。移調で±3以上になる音は自動で異名同音にする
 type Fraction = { num: number; den: number } // 4分音符 = 1/4
 
-type Note = {
-  id: string; partId: string; measure: number; staff: number; voice: number;
-  onset: Fraction;      // 小節頭からの位置
-  duration: Fraction;
-  pitches: Pitch[];     // 空なら休符、2つ以上なら和音
+type NoteHead = {               // 和音の1音ずつ
+  id: string; pitch: Pitch;
   tie?: { start?: boolean; stop?: boolean };
-  tuplet?: { actual: number; normal: number };
-  slur?: 'start'|'stop'; dynamics?: string; articulations: string[];
-  grace?: boolean;
-  origin: 'source'|'generated'|'edited'; // 元楽譜／編曲で生成／手直し
+  accidentalShown?: 'auto'|'courtesy'|'paren';
 };
-type MeasureMeta = { number: number; time?: [number, number]; key?: { fifths: number; mode: 'major'|'minor' };
-  tempo?: number; rehearsal?: string; repeat?: 'start'|'end'|'both'; ending?: number };
-type Part = { id: string; name: string; instrumentId: string; staves: number };
-type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[]; measures: MeasureMeta[]; notes: Note[] };
+type Note = {
+  id: string; partId: string; measure: number /* 小節index（0始まり） */; staff: number; voice: number;
+  onset: Fraction;      // 小節頭からの位置
+  duration: Fraction;   // 表示上の音価（連符なら連符適用後の実長）
+  heads: NoteHead[];    // 空なら休符、2つ以上なら和音
+  tuplets?: { id: string; actual: number; normal: number; normalType?: Fraction; start?: boolean; stop?: boolean }[]; // 外側から順
+  slurs?: { id: string; type: 'start'|'stop' }[];
+  articulations: string[]; ornaments?: string[]; tremolo?: number;
+  grace?: { slash: boolean }; // 装飾音。拍の計算には含めない
+  origin: 'source'|'generated'|'edited'; // 元楽譜／編曲で生成／手直し
+  derivedFrom?: { sectionId: string; sourcePartId: string; sourceNoteIds: string[] }; // 編曲で生成した音の出どころ
+  passthrough?: unknown; // 歌詞・コード記号・運指など「保持のみ」の要素
+};
+type Direction = { id: string; partId: string; measure: number; onset: Fraction; staff: number;
+  kind: 'dynamic'|'wedge'|'tempo'|'text'|'octave-shift'|'pedal'; value: string; endMeasure?: number; endOnset?: Fraction };
+type ClefChange = { partId: string; staff: number; measure: number; onset: Fraction;
+  sign: 'G'|'F'|'C'|'percussion'; line: number; octaveChange?: number };
+type MeasureMeta = {
+  index: number; displayNumber: string;     // 表示用（"0"＝弱起、"12a" など）
+  implicit?: boolean;                       // 弱起など番号を数えない小節
+  time?: [number, number]; key?: { fifths: number; mode: 'major'|'minor'; modeRaw?: string };
+  tempo?: { bpm: number; beatUnit: Fraction; text?: string }; rehearsal?: string;
+  repeat?: 'start'|'end'|'both'; ending?: { numbers: number[]; type: 'start'|'stop'|'discontinue' };
+  jump?: 'segno'|'coda'|'fine'|'dc'|'dc-al-fine'|'dc-al-coda'|'ds'|'ds-al-fine'|'ds-al-coda'|'to-coda';
+};
+type Part = { id: string; name: string; abbr?: string; instrumentId: string; staves: number;
+  keySignatureFlavor?: 'auto'|'sharp'|'flat'; group?: string };
+type Score = { schemaVersion: 1; id: string; title: string; composer: string;
+  parts: Part[]; measures: MeasureMeta[]; notes: Note[]; directions: Direction[]; clefs: ClefChange[] };
+
+type Arrangement = { id: string; sourceScoreId: string; targetScoreId: string; ensembleId: string;
+  sections: { id: string; start: number; end: number; // 小節index
+    roles: Record<string /*元partId*/, 'melody-high'|'melody-mid'|'counter'|'harmony'|'bass'|'rest'|'double'>;
+    mapping: Record<string /*楽器partId*/, string[] /*元partId*/> }[] };
+type Project = { schemaVersion: 1; id: string; name: string; revision: number; updatedAt: string; updatedBy: string /*端末ID*/;
+  sourceScore: Score; derivedScores: Score[]; arrangements: Arrangement[]; settings: Record<string, unknown> };
 ```
+
+- 調号・拍子は全パート共通で持つ（パートごとに違う拍子は非対応）。調号は実音で持ち、移調楽器の記譜調号は描画・書き出し時にパートごとに計算する
+- 元ファイルの移調楽器（`<transpose>`）は読み込み時に実音へ直す。書き出し時は**記譜音＋`<transpose>`**で出す（MuseScore等の標準）
+- 派生スコア（移調・編曲の結果）は元スコアのコピーとして持ち、元スコアは書き換えない
+- 割当をやり直すときは `origin:'edited'` の音を残し、同じ区間・楽器の `generated` の音だけを差し替える。手直しした音と重なる場合は確認を出す
+
+### 楽器定義（`config/instruments.json`）
+
+```ts
+type InstrumentDef = {
+  id: string; name: { ja: string; en: string }; abbr: string;
+  transposition: { interval: string /* 'M2' 等 */; direction: 'down'|'up'; octaves?: number } | null; // 記譜→実音
+  range: { practical: [string, string]; extreme?: [string, string] }; // 実音（例 'C4'）
+  clefs: { default: string; alt?: { clef: string; above?: string; below?: string }[] };
+  polyphonic: boolean; staves: number; unpitched?: boolean;
+  midiProgram: number; sample: string;
+  keySignaturePolicy?: 'normal'|'none'; // ホルンの慣習
+};
+type Ensemble = { id: string; name: string; instruments: string[] }; // config/ensembles.json
+```
+
+楽器・編成・閾値はリポジトリ内のJSONで持つ（変更は再デプロイ）。アプリ内での上書きはv2以降。
 
 ### 対応するMusicXML要素
 
 | 扱い | 要素 |
 | --- | --- |
-| 対応（編集・移調・編曲の対象） | 音符・休符・和音、タイ、連符、声部、装飾音、調号、拍子、音部記号、テンポ、強弱、スラー、アーティキュレーション、繰り返し・括弧、練習番号 |
-| 保持のみ（そのまま書き出す） | 歌詞、コード記号、運指、トリル等の装飾記号 |
+| 対応（編集・移調・編曲の対象） | 音符・休符・和音、タイ、連符、声部、装飾音、調号、拍子、音部記号、テンポ、強弱、ヘアピン（cresc./dim.）、スラー、アーティキュレーション、トレモロ、繰り返し・括弧、D.C./D.S./Coda/Fine、練習番号、移調楽器（`<transpose>`） |
+| 保持のみ（そのまま書き出す） | 歌詞、コード記号、運指、トリル等の装飾記号、オッターヴァ、ペダル、パートグループの括弧 |
 | 無視 | 改段・改ページ位置、フォント、MIDI固有の設定 |
 
 繰り返し記号は、楽譜上はそのまま残し、再生時だけ展開する。
@@ -305,6 +365,9 @@ type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[];
 - 臨時記号は「調に対する相対的な変化」を保って変換する。結果にダブルシャープ等が出ても正しい綴りなら残し、「異名同音で簡単にする」ボタンで手動変換する
 - 曲の途中の転調は、調号の区間ごとに移調する
 - 打楽器など音高のないパートは移調の対象外
+- 音程は「完全・長・短・増・減 × 1〜8度＋オクターブ数」で指定できる
+- 小節範囲だけを移調したときは、範囲の頭と直後に調号の変更を自動で入れる
+- 移調楽器の記譜で音域外になっても、MVPでは警告のみ（オクターブ記号は使わない）
 
 ### 編曲の判定基準
 
@@ -323,34 +386,49 @@ type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[];
 | 息継ぎ | 休みなしで16秒以上（テンポから換算） |
 | 跳躍 | 1オクターブを超える跳躍が2回以上続く |
 | ホルン高音 | 実音E5以上が2小節以上続く |
-| 音域端 | 音域上端から長3度以内に4拍以上とどまる |
+| 音域端 | 音域上端から長3度以内、または下端から長2度以内に4拍以上とどまる |
+| 旋律の欠け | 旋律パートの音のうち、どの楽器にも割り当たらなかった割合が5%超 |
+
+- 旋律（高）／旋律（中）：旋律の平均音高がG5以上なら高、未満なら中
+- 旋律担当の回し：同じ楽器が2区間続けて旋律なら、次の区間は第2候補へ
+- 和音の推定：拍ごとの音の集合を三和音・七の和音の型と照合する。判定できなければ「最低音＋上の音から順に残す」
+- 全休止：全パートが1小節以上休符
+- ティンパニ・打楽器は割当の対象外。弦の重音は分解して扱い、pizz.はスタッカートの候補にする
 
 ### 保存とログイン
 
 - ログインなしでも全機能を使える。保存先は端末内（IndexedDB）
+- iPhone/iPadのSafariは、ホーム画面に追加していないサイトのデータを一定期間で消すことがあるため、`navigator.storage.persist()` を要求し、ホーム画面への追加を案内する。プロジェクトJSONを「ファイルに保存／ファイルから開く」もできるようにする（MVP）
 - Googleでログインすると、Googleドライブにも保存できる。権限は「このアプリが作ったファイルだけ」（drive.file）に絞る
 - Googleドライブの「楽譜アプリ」フォルダに、プロジェクトごとに内部データ（.json）と元ファイルを置く
 - 自動保存：編集後3秒で端末へ、Googleドライブへは30秒ごとと画面を離れるとき
-- 端末内とドライブで食い違ったら新しい方を開き、古い方は別名で残す
+- 端末内とドライブで食い違ったら新しい方を開き、古い方は別名で残す。新旧は端末の時計ではなく、保存ごとに増える `revision` で判定する
 - 友人との共有はGoogleドライブの共有機能を使う。同時編集はしない（開いた側がコピーして編集）
-- 準備：Google Cloudでプロジェクトを作り、OAuth同意画面を「テスト」状態のまま友人をテストユーザーに登録する（最大100人）
+- `drive.file` 権限では、友人が共有したファイルはそのままでは開けないため、**Google Picker**（ファイル選択画面）で選んでもらって開く
+- 静的サイトのログインはアクセストークンが約1時間で切れる。切れたらドライブへの自動保存を止めて「再接続」ボタンを出す（端末内保存は続ける）
+- 準備：Google Cloudでプロジェクトを作り、OAuth同意画面を「テスト」状態のまま友人をテストユーザーに登録する（最大100人）。テスト状態はログインの有効期間が短いので、不便なら本番公開（drive.fileは厳しい審査の対象外）に切り替える
 
 ### PDF
 
 - 用紙：A4縦が既定。B4・A3・レターも選べる。総譜は大編成ならA4横またはB4を推奨表示
 - 生成：描画したSVGをページごとにPDF化する（例：svg2pdf.js＋jsPDF）。ブラウザの印刷機能に頼らないので、iPhoneでも同じ結果になる
 - パート譜：長い休みはまとめた休符（複数小節休符）にし、ページの切れ目はなるべく休みの位置に置く
+- 日本語の曲名・楽器名を出すため、日本語フォント（Noto Sans JPのサブセット）をPDF書き出し時だけ読み込んで埋め込む
+- 総譜の2ページ目以降は楽器名を略称にし、ページ番号を入れる
 
 ### 再生音源
 
 - 無料で再配布できるライセンスのサンプル音源を使う（例：FluidR3\_GM系。採用前にライセンスを確認）
-- 楽器ごとに必要なときだけ読み込み、全楽器合計5MB程度に抑える
+- 楽器ごとに必要なときだけ読み込み、木管5重奏＋ピアノの合計5MB程度に抑える。原曲（オーケストラ）の再生は代表音色（弦1種・金管1種など）で代用してよい
+- 強弱は音量、スタッカートは音長50%、フェルマータは1.5倍で再生する。rit.・accel.はMVPでは無視
+- 音源のライセンスとクレジットは `public/samples/LICENSE` に記録し、アプリ内に表示する
 - iPhoneは最初の再生にタップ操作が必要。消音モードだと音が出ないことがあるので画面で案内する
 
 ### 対応ブラウザと性能目標
 
 - 対応：Chrome・Edge・Safariの最新2バージョン、iPhone/iPadのSafari、AndroidのChrome
-- 読み込めるファイル：20MBまで
+- 読み込めるファイル：20MBまで（`.mxl` の解凍はfflate）
+- 描画ライブラリ（WASM）と音源はService Workerでキャッシュし、2回目以降の起動を速くする
 
 | 処理 | PC | スマホ |
 | --- | --- | --- |
@@ -374,7 +452,11 @@ type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[];
 | Mutopia Project | MIDI・PDF | MIDI入力のテスト |
 | IMSLP | PDF | PDF/画像入力のテスト |
 
-各ファイルのライセンスは取得時に確認し、テスト素材フォルダに記録する。MusicXMLはMuseScore・Finale・Sibeliusなど、複数の楽譜ソフトが書き出したものを混ぜる。
+各ファイルのライセンスは取得時に確認し、テスト素材フォルダ（`test-assets/LICENSES.md`）に記録する。MusicXMLはMuseScore・Dorico・Sibelius・Finaleなど、複数の楽譜ソフトが書き出したものを混ぜる（Finaleは2024年に開発終了のため、集まらなければ他のソフトで代える）。
+
+- 運命 第1楽章のCC0データが入手できるまでは、同じ規模（約500小節・2管編成）の**合成スコア**を生成して性能テストに使う
+- アイネ・クライネが入手できるまでは、同じ弦4部のモーツァルト弦楽四重奏曲（OpenScore String Quartets、CC0）で代える
+- 往復テストで比べる項目：パート数、小節数、各音の（小節・onset・duration・音高・タイ・連符・声部・staff）、調号、拍子、音部記号。表示位置・フォントは比べない
 
 ## 開発計画
 
@@ -388,11 +470,11 @@ type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[];
 
 | # | フェーズ | 作るもの | 完了条件 |
 | --- | --- | --- | --- |
-| 0 | 試作 | Verovioで運命 第1楽章を表示し、音符をタップ→音高を変える→再描画、までの最小版 | 3端末で編集の反映がPC 0.2秒・スマホ0.3秒以内。届かなければOSMDで同じ試作をして比べ、描画ライブラリを確定 |
-| 1 | MVP | 開発の土台：プロジェクト作成、自動デプロイ、テスト環境、データモデル（版番号つき）、MusicXMLの読み込みと書き出し | MuseScore・Finale・Sibelius由来の3ファイルで「読み込み→書き出し」しても音符情報が変わらない |
-| 2 | MVP | 楽譜表示・再生・表示オプション・3端末レイアウト | K.331とアイネ・クライネを3端末で表示・再生できる。運命の読み込みがPC 5秒・スマホ10秒以内 |
-| 3 | MVP | 移調モードA・B | 移調の自動テストがすべて通る。K.331をB♭へ移調し、B♭クラ譜でCメジャーと表示される |
-| 4 | MVP | 音符の編集、元に戻す、端末内への自動保存 | K.331を10か所編集→書き出し→MuseScoreで一致。リロードしても編集が残る |
+| 0 | 試作 | Verovioで運命 第1楽章を表示し、音符をタップ→音高を変える→再描画、までの最小版。全体の再読み込みと「数十小節ずつ分けて描画」の2方式を比べる | 3端末で編集の反映がPC 0.2秒・スマホ0.3秒以内。届かなければOSMDで同じ試作をして比べ、描画ライブラリを確定 |
+| 1 | MVP | 開発の土台：プロジェクト作成、自動デプロイ、テスト環境、データモデル（版番号つき）、楽器定義、MusicXMLの読み込みと書き出し（`<transpose>` の実音化を含む） | 作成ソフトの異なる3ファイルで「読み込み→書き出し」しても音符情報が変わらない |
+| 2 | MVP | ホーム・読み込み確認画面、楽譜表示・再生・表示オプション・3端末レイアウト、PWA化 | K.331とアイネ・クライネを3端末で表示・再生できる。運命の読み込みがPC 5秒・スマホ10秒以内 |
+| 3 | MVP | 移調モードA・B、単旋律の抽出（最小版）、音域チェック | 移調の自動テストがすべて通る。K.331をB♭へ移調し、B♭クラ譜でCメジャーと表示される |
+| 4 | MVP | 音符の編集、元に戻す、端末内への自動保存、ファイル保存、落ちたときの復元 | K.331を10か所編集→書き出し→MuseScoreで一致。リロードしても編集が残る |
 | 5 | MVP | PDF書き出し（総譜・パート譜） | PCとiPhoneで同じ見た目のPDFが出る |
 | 6 | 編曲 | 半自動編曲（解析・割当・縮約・警告・編曲ワークスペース） | アイネ・クライネ第1楽章を木管5重奏にし、警告ゼロまで直せる |
 | 7 | 編曲 | 大編成への対応と調整 | 運命 第1楽章の編曲案がPC 3秒・スマホ10秒以内に出て、通しで再生できる |
@@ -440,3 +522,4 @@ type Score = { schemaVersion: 1; title: string; composer: string; parts: Part[];
 - [x] 他の編成 → MVPは木管5重奏のみ。楽器と編成を設定ファイルで追加できる設計にし、金管5重奏などを後から足せるようにする
 - [x] 友人との共有 → Googleドライブの共有機能を使う（「保存とログイン」の節）
 - [x] 強弱・アーティキュレーション・スラー → 元パートのものをそのまま引き継ぎ、縮約で音が消えた箇所の記号は捨てる
+- [x] 仕様レビュー（`docs/spec-review.md`）の提案を既定として採用（2026-10-24）。詳しい作業分解は `docs/dev-plan.md`

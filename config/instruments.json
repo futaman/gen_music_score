@@ -1,0 +1,668 @@
+{
+  "$comment": "楽器定義。音域は実音で、一般的な実用音域の目安（教本で要確認）。transposition は記譜→実音。match は MusicXML から楽器を推定するための手がかり（sounds は instrument-sound、names は小文字の正規表現）",
+  "instruments": [
+    {
+      "id": "piccolo",
+      "name": {
+        "ja": "ピッコロ",
+        "en": "Piccolo"
+      },
+      "abbr": "Picc.",
+      "transposition": {
+        "interval": "P8",
+        "direction": "up"
+      },
+      "range": {
+        "practical": ["D5", "C8"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 72,
+      "sample": "piccolo",
+      "match": {
+        "sounds": ["wind.flutes.flute.piccolo"],
+        "names": ["piccolo", "ottavino", "kleine fl", "ピッコロ"]
+      }
+    },
+    {
+      "id": "flute",
+      "name": {
+        "ja": "フルート",
+        "en": "Flute"
+      },
+      "abbr": "Fl.",
+      "transposition": null,
+      "range": {
+        "practical": ["C4", "C7"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 73,
+      "sample": "flute",
+      "match": {
+        "sounds": ["wind.flutes.flute"],
+        "names": ["flute", "flauto", "flöte", "flûte", "フルート"]
+      }
+    },
+    {
+      "id": "oboe",
+      "name": {
+        "ja": "オーボエ",
+        "en": "Oboe"
+      },
+      "abbr": "Ob.",
+      "transposition": null,
+      "range": {
+        "practical": ["Bb3", "G6"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 68,
+      "sample": "oboe",
+      "match": {
+        "sounds": ["wind.reed.oboe"],
+        "names": ["oboe", "hautbois", "オーボエ"]
+      }
+    },
+    {
+      "id": "english-horn",
+      "name": {
+        "ja": "イングリッシュホルン",
+        "en": "English Horn"
+      },
+      "abbr": "E.H.",
+      "transposition": {
+        "interval": "P5",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["E3", "C6"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 69,
+      "sample": "english-horn",
+      "match": {
+        "sounds": ["wind.reed.english-horn"],
+        "names": ["english horn", "cor anglais", "corno inglese", "englischhorn", "イングリッシュ"]
+      }
+    },
+    {
+      "id": "clarinet-bb",
+      "name": {
+        "ja": "クラリネット（B♭管）",
+        "en": "Clarinet in B♭"
+      },
+      "abbr": "Cl.",
+      "transposition": {
+        "interval": "M2",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["D3", "Bb6"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 71,
+      "sample": "clarinet",
+      "match": {
+        "sounds": ["wind.reed.clarinet.bflat", "wind.reed.clarinet"],
+        "names": ["clarinet.*(b♭|bb|b-flat|in b\\b|sib)", "^clarinet", "^clarinetto", "^klarinette", "クラリネット"]
+      }
+    },
+    {
+      "id": "clarinet-a",
+      "name": {
+        "ja": "クラリネット（A管）",
+        "en": "Clarinet in A"
+      },
+      "abbr": "Cl.",
+      "transposition": {
+        "interval": "m3",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["C#3", "A6"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 71,
+      "sample": "clarinet",
+      "match": {
+        "sounds": ["wind.reed.clarinet.a"],
+        "names": ["clarinet.*\\bin a\\b", "clarinet.*\\(a\\)", "clarinetto.*\\bin la\\b", "klarinette.*\\bin a\\b"]
+      }
+    },
+    {
+      "id": "clarinet-c",
+      "name": {
+        "ja": "クラリネット（C管）",
+        "en": "Clarinet in C"
+      },
+      "abbr": "Cl.",
+      "transposition": null,
+      "range": {
+        "practical": ["E3", "C7"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 71,
+      "sample": "clarinet",
+      "match": {
+        "sounds": ["wind.reed.clarinet.c"],
+        "names": ["clarinet.*\\bin c\\b", "clarinetto.*\\bin do\\b"]
+      }
+    },
+    {
+      "id": "bass-clarinet",
+      "name": {
+        "ja": "バスクラリネット",
+        "en": "Bass Clarinet"
+      },
+      "abbr": "B.Cl.",
+      "transposition": {
+        "interval": "M9",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["D2", "Bb5"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 71,
+      "sample": "bass-clarinet",
+      "match": {
+        "sounds": ["wind.reed.clarinet.bass"],
+        "names": ["bass clarinet", "clarinetto basso", "bassklarinette", "バスクラ"]
+      }
+    },
+    {
+      "id": "bassoon",
+      "name": {
+        "ja": "ファゴット",
+        "en": "Bassoon"
+      },
+      "abbr": "Bsn.",
+      "transposition": null,
+      "range": {
+        "practical": ["Bb1", "D5"]
+      },
+      "clefs": {
+        "default": "F4",
+        "alt": [
+          {
+            "clef": "C4",
+            "above": "G4"
+          }
+        ]
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 70,
+      "sample": "bassoon",
+      "match": {
+        "sounds": ["wind.reed.bassoon"],
+        "names": ["bassoon", "fagott", "fagotto", "basson", "ファゴット"]
+      }
+    },
+    {
+      "id": "contrabassoon",
+      "name": {
+        "ja": "コントラファゴット",
+        "en": "Contrabassoon"
+      },
+      "abbr": "Cbsn.",
+      "transposition": {
+        "interval": "P8",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["Bb0", "Bb3"]
+      },
+      "clefs": {
+        "default": "F4"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 70,
+      "sample": "contrabassoon",
+      "match": {
+        "sounds": ["wind.reed.contrabassoon"],
+        "names": ["contrabassoon", "kontrafagott", "contrafagotto", "コントラファゴット"]
+      }
+    },
+    {
+      "id": "horn-f",
+      "name": {
+        "ja": "ホルン（F管）",
+        "en": "Horn in F"
+      },
+      "abbr": "Hn.",
+      "transposition": {
+        "interval": "P5",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["F2", "F5"],
+        "extreme": ["B1", "F5"]
+      },
+      "clefs": {
+        "default": "G2",
+        "alt": [
+          {
+            "clef": "F4",
+            "below": "C3"
+          }
+        ]
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 60,
+      "sample": "horn",
+      "match": {
+        "sounds": ["brass.french-horn", "brass.natural-horn"],
+        "names": ["horn", "corno", "cor\\b", "ホルン"]
+      }
+    },
+    {
+      "id": "trumpet-bb",
+      "name": {
+        "ja": "トランペット（B♭管）",
+        "en": "Trumpet in B♭"
+      },
+      "abbr": "Tpt.",
+      "transposition": {
+        "interval": "M2",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["E3", "Bb5"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 56,
+      "sample": "trumpet",
+      "match": {
+        "sounds": ["brass.trumpet.bflat"],
+        "names": ["trumpet.*(b♭|bb|b-flat|in b\\b)", "tromba.*\\bsi\\b"]
+      }
+    },
+    {
+      "id": "trumpet-c",
+      "name": {
+        "ja": "トランペット（C管）",
+        "en": "Trumpet in C"
+      },
+      "abbr": "Tpt.",
+      "transposition": null,
+      "range": {
+        "practical": ["F#3", "C6"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 56,
+      "sample": "trumpet",
+      "match": {
+        "sounds": ["brass.trumpet.c", "brass.trumpet"],
+        "names": ["trumpet", "tromba", "trompete", "trompette", "トランペット"]
+      }
+    },
+    {
+      "id": "trombone",
+      "name": {
+        "ja": "トロンボーン",
+        "en": "Trombone"
+      },
+      "abbr": "Tbn.",
+      "transposition": null,
+      "range": {
+        "practical": ["E2", "F5"]
+      },
+      "clefs": {
+        "default": "F4",
+        "alt": [
+          {
+            "clef": "C4",
+            "above": "G4"
+          }
+        ]
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 57,
+      "sample": "trombone",
+      "match": {
+        "sounds": ["brass.trombone", "brass.trombone.tenor", "brass.trombone.alto"],
+        "names": ["trombone", "posaune", "トロンボーン"]
+      }
+    },
+    {
+      "id": "bass-trombone",
+      "name": {
+        "ja": "バストロンボーン",
+        "en": "Bass Trombone"
+      },
+      "abbr": "B.Tbn.",
+      "transposition": null,
+      "range": {
+        "practical": ["Bb1", "Bb4"]
+      },
+      "clefs": {
+        "default": "F4"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 57,
+      "sample": "trombone",
+      "match": {
+        "sounds": ["brass.trombone.bass"],
+        "names": ["bass trombone", "bassposaune"]
+      }
+    },
+    {
+      "id": "tuba",
+      "name": {
+        "ja": "チューバ",
+        "en": "Tuba"
+      },
+      "abbr": "Tba.",
+      "transposition": null,
+      "range": {
+        "practical": ["D1", "F4"]
+      },
+      "clefs": {
+        "default": "F4"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 58,
+      "sample": "tuba",
+      "match": {
+        "sounds": ["brass.tuba"],
+        "names": ["tuba", "チューバ"]
+      }
+    },
+    {
+      "id": "alto-sax",
+      "name": {
+        "ja": "アルトサックス（E♭管）",
+        "en": "Alto Saxophone"
+      },
+      "abbr": "A.Sx.",
+      "transposition": {
+        "interval": "M6",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["Db3", "Ab5"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 65,
+      "sample": "alto-sax",
+      "match": {
+        "sounds": ["wind.reed.saxophone.alto"],
+        "names": ["alto sax", "altsax", "アルトサックス"]
+      }
+    },
+    {
+      "id": "tenor-sax",
+      "name": {
+        "ja": "テナーサックス（B♭管）",
+        "en": "Tenor Saxophone"
+      },
+      "abbr": "T.Sx.",
+      "transposition": {
+        "interval": "M9",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["Ab2", "Eb5"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 66,
+      "sample": "tenor-sax",
+      "match": {
+        "sounds": ["wind.reed.saxophone.tenor"],
+        "names": ["tenor sax", "tenorsax", "テナーサックス"]
+      }
+    },
+    {
+      "id": "timpani",
+      "name": {
+        "ja": "ティンパニ",
+        "en": "Timpani"
+      },
+      "abbr": "Timp.",
+      "transposition": null,
+      "range": {
+        "practical": ["D2", "A3"]
+      },
+      "clefs": {
+        "default": "F4"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 47,
+      "sample": "timpani",
+      "match": {
+        "sounds": ["drum.timpani"],
+        "names": ["timpani", "pauken", "timbales", "ティンパニ"]
+      }
+    },
+    {
+      "id": "percussion",
+      "name": {
+        "ja": "打楽器",
+        "en": "Percussion"
+      },
+      "abbr": "Perc.",
+      "transposition": null,
+      "range": {
+        "practical": ["C4", "C4"]
+      },
+      "clefs": {
+        "default": "percussion"
+      },
+      "polyphonic": false,
+      "staves": 1,
+      "midiProgram": 0,
+      "sample": "percussion",
+      "match": {
+        "sounds": ["drum", "metal", "wood"],
+        "names": ["percussion", "drum", "cymbal", "triangle", "打楽器"]
+      },
+      "unpitched": true
+    },
+    {
+      "id": "piano",
+      "name": {
+        "ja": "ピアノ",
+        "en": "Piano"
+      },
+      "abbr": "Pno.",
+      "transposition": null,
+      "range": {
+        "practical": ["A0", "C8"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": true,
+      "staves": 2,
+      "midiProgram": 0,
+      "sample": "piano",
+      "match": {
+        "sounds": ["keyboard.piano", "keyboard.piano.grand"],
+        "names": ["piano", "pianoforte", "klavier", "ピアノ"]
+      }
+    },
+    {
+      "id": "violin",
+      "name": {
+        "ja": "ヴァイオリン",
+        "en": "Violin"
+      },
+      "abbr": "Vn.",
+      "transposition": null,
+      "range": {
+        "practical": ["G3", "E7"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": true,
+      "staves": 1,
+      "midiProgram": 40,
+      "sample": "violin",
+      "match": {
+        "sounds": ["strings.violin"],
+        "names": ["violin", "violino", "violon\\b", "geige", "ヴァイオリン", "バイオリン"]
+      }
+    },
+    {
+      "id": "viola",
+      "name": {
+        "ja": "ヴィオラ",
+        "en": "Viola"
+      },
+      "abbr": "Va.",
+      "transposition": null,
+      "range": {
+        "practical": ["C3", "E6"]
+      },
+      "clefs": {
+        "default": "C3",
+        "alt": [
+          {
+            "clef": "G2",
+            "above": "C5"
+          }
+        ]
+      },
+      "polyphonic": true,
+      "staves": 1,
+      "midiProgram": 41,
+      "sample": "viola",
+      "match": {
+        "sounds": ["strings.viola"],
+        "names": ["viola", "bratsche", "alto\\b", "ヴィオラ"]
+      }
+    },
+    {
+      "id": "cello",
+      "name": {
+        "ja": "チェロ",
+        "en": "Violoncello"
+      },
+      "abbr": "Vc.",
+      "transposition": null,
+      "range": {
+        "practical": ["C2", "A5"]
+      },
+      "clefs": {
+        "default": "F4",
+        "alt": [
+          {
+            "clef": "C4",
+            "above": "D4"
+          }
+        ]
+      },
+      "polyphonic": true,
+      "staves": 1,
+      "midiProgram": 42,
+      "sample": "cello",
+      "match": {
+        "sounds": ["strings.cello"],
+        "names": ["cello", "violoncello", "チェロ"]
+      }
+    },
+    {
+      "id": "contrabass",
+      "name": {
+        "ja": "コントラバス",
+        "en": "Contrabass"
+      },
+      "abbr": "Cb.",
+      "transposition": {
+        "interval": "P8",
+        "direction": "down"
+      },
+      "range": {
+        "practical": ["E1", "G4"]
+      },
+      "clefs": {
+        "default": "F4"
+      },
+      "polyphonic": true,
+      "staves": 1,
+      "midiProgram": 43,
+      "sample": "contrabass",
+      "match": {
+        "sounds": ["strings.contrabass"],
+        "names": ["contrabass", "double bass", "kontrabass", "contrabbasso", "basso\\b", "bass\\b", "コントラバス"]
+      }
+    },
+    {
+      "id": "unknown",
+      "name": {
+        "ja": "不明な楽器",
+        "en": "Unknown"
+      },
+      "abbr": "",
+      "transposition": null,
+      "range": {
+        "practical": ["C0", "C9"]
+      },
+      "clefs": {
+        "default": "G2"
+      },
+      "polyphonic": true,
+      "staves": 1,
+      "midiProgram": 0,
+      "sample": "piano",
+      "match": {
+        "sounds": [],
+        "names": []
+      }
+    }
+  ]
+}

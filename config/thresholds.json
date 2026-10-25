@@ -1,0 +1,23 @@
+{
+  "arrange": {
+    "sectionFallbackMeasures": 8,
+    "restRatio": 0.8,
+    "melodyHighMidi": 79,
+    "doubleRhythmMatch": 0.9,
+    "doublePitchMatch": 0.9,
+    "counterRhythmMatchMax": 0.6,
+    "counterNoteRatioMin": 0.5,
+    "rotateMelodyAfter": 2
+  },
+  "warnings": {
+    "breathSeconds": 16,
+    "leapSemitones": 12,
+    "leapRepeat": 2,
+    "hornHighMidi": 76,
+    "hornHighMeasures": 2,
+    "edgeTopSemitones": 4,
+    "edgeBottomSemitones": 2,
+    "edgeBeats": 4,
+    "melodyMissingRatio": 0.05
+  }
+}

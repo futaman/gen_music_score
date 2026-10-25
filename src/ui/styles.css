@@ -1,0 +1,783 @@
+:root {
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #d2d2d7;
+  --accent: #0a66d8;
+  --accent-fg: #ffffff;
+  --warn: #9a5b00;
+  --warn-bg: #fff4e0;
+  --error: #c4001b;
+  --error-bg: #ffeaec;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #1c1c1e;
+    --surface: #2c2c2e;
+    --fg: #f2f2f7;
+    --muted: #a1a1a6;
+    --line: #3a3a3c;
+    --accent: #4c9bff;
+    --accent-fg: #0b0b0c;
+    --warn: #ffb340;
+    --warn-bg: #3a2a10;
+    --error: #ff6b6b;
+    --error-bg: #3a1518;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --fg: #f2f2f7;
+  --muted: #a1a1a6;
+  --line: #3a3a3c;
+  --accent: #4c9bff;
+  --accent-fg: #0b0b0c;
+  --warn: #ffb340;
+  --warn-bg: #3a2a10;
+  --error: #ff6b6b;
+  --error-bg: #3a1518;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Hiragino Sans',
+    'Noto Sans JP',
+    sans-serif;
+  line-height: 1.6;
+}
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+h1 {
+  font-size: 20px;
+  margin: 8px 0 16px;
+}
+h2 {
+  font-size: 16px;
+  margin: 24px 0 8px;
+}
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: center;
+}
+.drop.over {
+  border-color: var(--accent);
+}
+.drop input {
+  display: none;
+}
+.summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+.summary dt {
+  color: var(--muted);
+}
+.summary dd {
+  margin: 0;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+th,
+td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.notice {
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.notice.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.notice.error {
+  background: var(--error-bg);
+  color: var(--error);
+}
+ul.compact {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+details summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---- 楽譜の画面 ---- */
+.score-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.toolbar .title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+select {
+  min-height: 44px;
+  font: inherit;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  max-width: 100%;
+}
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.segmented label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  cursor: pointer;
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+}
+.segmented label:last-child {
+  border-right: none;
+}
+.segmented label.on {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.score-main {
+  flex: 1;
+  min-width: 0;
+}
+.score-view {
+  position: relative;
+  padding: 8px 16px 96px;
+  /* 2本指のピンチはアプリで扱う（ブラウザ全体の拡大にしない） */
+  touch-action: pan-x pan-y;
+}
+.score-view.layout-horizontal {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  gap: 0;
+}
+.score-view.layout-page .chunk {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.chunk {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+.layout-vertical .chunk + .chunk,
+.layout-page .chunk + .chunk {
+  border-top: 1px dashed var(--line);
+}
+.layout-horizontal .chunk {
+  flex: none;
+}
+.chunk svg {
+  display: block;
+  color: var(--fg);
+  fill: currentColor;
+}
+.layout-page .chunk svg {
+  margin: 0 auto;
+}
+.chunk.placeholder {
+  background: repeating-linear-gradient(var(--bg) 0 22px, var(--surface) 22px 23px);
+  opacity: 0.6;
+}
+.layout-horizontal .chunk.placeholder {
+  width: 600px;
+}
+.chunk-error {
+  padding: 16px;
+  color: var(--error);
+}
+.hide-mnum .chunk svg g.mNum {
+  display: none;
+}
+
+/* ---- 設定パネル ---- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(0 0 0 / 0.35);
+  display: flex;
+  justify-content: flex-end;
+}
+.sheet {
+  width: min(440px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  box-shadow: -4px 0 16px rgb(0 0 0 / 0.2);
+}
+.device-phone .sheet {
+  width: 100%;
+}
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheet-header h2 {
+  margin: 0;
+}
+.choice {
+  border: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.choice legend {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.check input {
+  width: 22px;
+  height: 22px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.row input[type='range'] {
+  flex: 1;
+  min-width: 140px;
+  min-height: 44px;
+}
+.zoom-value {
+  min-width: 4em;
+}
+
+/* スマホ：曲名は出さず、操作を1行に収める */
+.device-phone .toolbar {
+  flex-wrap: nowrap;
+  padding-left: 8px;
+  padding-right: 8px;
+  gap: 6px;
+}
+.device-phone .toolbar .title {
+  display: none;
+}
+.device-phone .toolbar select {
+  flex: 1;
+  min-width: 0;
+}
+.device-phone .toolbar .segmented label {
+  padding: 0 10px;
+}
+.device-phone .score-view {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* ---- 再生 ---- */
+.playbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.playbar .play {
+  min-width: 56px;
+  font-size: 18px;
+}
+.playbar .position {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playbar .tempo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.playbar .tempo input {
+  width: 120px;
+  min-height: 44px;
+}
+.tempo-value {
+  min-width: 3.2em;
+  font-variant-numeric: tabular-nums;
+}
+.device-phone .playbar .tempo {
+  display: none;
+}
+.mixer-tempo {
+  margin: 12px 0;
+}
+.mixer-tempo .tempo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mixer-tempo .tempo input {
+  flex: 1;
+  min-height: 44px;
+}
+.chunk svg .playing,
+.chunk svg .playing * {
+  fill: var(--accent);
+  color: var(--accent);
+}
+.chunk {
+  scroll-margin-top: 72px;
+}
+.score-view .chunk svg g.measure {
+  cursor: pointer;
+}
+.mixer {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.mixer li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mixer li span {
+  flex: 1;
+}
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 14px;
+}
+
+.about {
+  margin-top: 32px;
+  font-size: 14px;
+}
+.about h3 {
+  font-size: 14px;
+  margin: 12px 0 4px;
+}
+a {
+  color: var(--accent);
+}
+
+/* ---- 移調・音域 ---- */
+.sheet h3 {
+  font-size: 15px;
+  margin: 24px 0 8px;
+}
+.indent {
+  margin-left: 28px;
+}
+.measure-input {
+  width: 4.5em;
+  min-height: 44px;
+  font: inherit;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+}
+.warn-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: none;
+  background: var(--error);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.warn-short,
+.device-phone .warn-long {
+  display: none;
+}
+.device-phone .warn-short {
+  display: inline;
+}
+.issues {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.issues li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.link {
+  min-height: 44px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+}
+
+/* ---- 編集 ---- */
+.editbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(61px + env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  overflow-x: auto;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08);
+  scrollbar-width: thin;
+}
+.editbar .button,
+.editbar select {
+  flex: none;
+  white-space: nowrap;
+}
+.editbar .sep {
+  flex: none;
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 4px 2px;
+}
+.keyboard {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(118px + env(safe-area-inset-bottom));
+  z-index: 10;
+  height: 132px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.keyboard .keys {
+  position: relative;
+  height: 124px;
+  margin: 4px 0;
+}
+.keyboard button {
+  position: absolute;
+  top: 0;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  padding: 0 0 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.keyboard .white {
+  width: 40px;
+  height: 124px;
+  background: #fff;
+  color: #555;
+  border-radius: 0 0 6px 6px;
+}
+.keyboard .black {
+  width: 26px;
+  height: 76px;
+  background: #222;
+  border-color: #000;
+  border-radius: 0 0 4px 4px;
+  z-index: 1;
+}
+.keyboard button:active {
+  filter: brightness(0.8);
+}
+.score-screen.editing .score-view {
+  padding-bottom: 180px;
+}
+.score-screen.with-keyboard .score-view {
+  padding-bottom: 320px;
+}
+.chunk svg .sel,
+.chunk svg .sel * {
+  fill: var(--accent);
+  color: var(--accent);
+}
+.chunk svg .warn,
+.chunk svg .warn * {
+  fill: #d70015;
+  color: #d70015;
+}
+.chunk svg .sel-staff {
+  fill: var(--accent);
+}
+.chunk svg .sel-staff > path,
+.chunk svg .sel-staff > g.ledgerLines path {
+  stroke: var(--accent);
+  stroke-width: 30;
+  opacity: 0.5;
+}
+.chunk svg g.note,
+.chunk svg g.rest,
+.chunk svg g.mRest,
+.chunk svg g.chord {
+  cursor: pointer;
+}
+
+/* ---- 保存・ホーム ---- */
+.toolbar .save-status {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.device-phone .toolbar .save-status {
+  display: none;
+}
+.projects {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.projects li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.projects .open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.projects .open {
+  overflow: hidden;
+}
+.projects .open strong,
+.projects .open small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.projects .open small {
+  color: var(--muted);
+}
+
+/* 再生位置の縦線 */
+.play-cursor {
+  position: absolute;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 書き出し：パートの選択 */
+.choice.checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+/* ---- 編曲 ---- */
+.sheet.arrange {
+  /* 割当表は楽器の数だけ列があるので広く */
+  width: min(980px, 100%);
+}
+.table-scroll {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.arrange-table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.arrange-table th,
+.arrange-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.arrange-table select {
+  max-width: 150px;
+  font-size: 13px;
+}
+/* 手で直した音 */
+.chunk svg .edited,
+.chunk svg .edited * {
+  fill: #c2410c;
+  color: #c2410c;
+}
+
+.arrange-table .row-tools {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.button.small {
+  padding: 2px 8px;
+  min-height: 28px;
+  font-size: 12px;
+}
