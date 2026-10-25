@@ -1,0 +1,12 @@
+{
+  "arrange": {
+    "sectionFallbackMeasures": 8,
+    "restRatio": 0.8,
+    "melodyHighMidi": 79,
+    "doubleRhythmMatch": 0.9,
+    "doublePitchMatch": 0.9,
+    "counterRhythmMatchMax": 0.6,
+    "counterNoteRatioMin": 0.5,
+    "rotateMelodyAfter": 2
+  }
+}

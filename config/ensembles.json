@@ -3,7 +3,14 @@
     {
       "id": "wind-quintet",
       "name": "木管5重奏",
-      "instruments": ["flute", "oboe", "clarinet-bb", "horn-f", "bassoon"]
+      "instruments": ["flute", "oboe", "clarinet-bb", "horn-f", "bassoon"],
+      "roles": {
+        "melody-high": ["flute", "oboe"],
+        "melody-mid": ["oboe", "clarinet-bb"],
+        "counter": ["clarinet-bb", "horn-f"],
+        "harmony": ["horn-f", "clarinet-bb"],
+        "bass": ["bassoon", "horn-f"]
+      }
     }
   ]
 }

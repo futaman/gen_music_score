@@ -24,7 +24,13 @@ export type InstrumentDef = {
   match: { sounds: string[]; names: RegExp[] };
 };
 
-export type Ensemble = { id: string; name: string; instruments: string[] };
+export type Ensemble = {
+  id: string;
+  name: string;
+  instruments: string[];
+  /** 役割ごとの担当楽器の候補（第1候補・第2候補…） */
+  roles: Record<string, string[]>;
+};
 
 function toDef(j: InstrumentJson): InstrumentDef {
   const range = j.range as { practical: string[]; extreme?: string[] };
@@ -51,7 +57,7 @@ function toDef(j: InstrumentJson): InstrumentDef {
 }
 
 export const INSTRUMENTS: readonly InstrumentDef[] = instrumentsJson.instruments.map(toDef);
-export const ENSEMBLES: readonly Ensemble[] = ensemblesJson.ensembles;
+export const ENSEMBLES: readonly Ensemble[] = ensemblesJson.ensembles as Ensemble[];
 const BY_ID = new Map(INSTRUMENTS.map((i) => [i.id, i]));
 
 export function getInstrument(id: string): InstrumentDef {
