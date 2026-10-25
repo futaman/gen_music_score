@@ -39,6 +39,7 @@ import { buildTimeline, type Timeline } from '../core/playback/timeline';
 import { midi, type Step } from '../core/theory/pitch';
 import { shiftOctaves } from '../core/transpose/transpose';
 import { EditBar, type EditAction } from './EditBar';
+import { ExportPanel } from './ExportPanel';
 import { Keyboard } from './Keyboard';
 import { PlaybackCursor } from './playback';
 import { PlayBar } from './PlayBar';
@@ -78,7 +79,7 @@ const elementIdOf = (n: Note) => (n.heads.length === 1 ? n.heads[0].id : n.id);
 export function ScoreScreen({ score: original, name, onBack, onScoreChange, saveStatus, onSaveProject }: Props) {
   const device = useDevice();
   const { settings, update, reset } = useDisplaySettings(device);
-  const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | null>(null);
+  const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | 'export' | null>(null);
   const editor = useEditor(original);
   const { score } = editor;
   useEffect(() => {
@@ -460,6 +461,9 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
         <button className="button" onClick={() => setPanel('transpose')}>
           移調
         </button>
+        <button className="button" onClick={() => setPanel('export')}>
+          書き出し
+        </button>
         <button className="button" onClick={() => setPanel('settings')}>
           設定
         </button>
@@ -508,12 +512,15 @@ export function ScoreScreen({ score: original, name, onBack, onScoreChange, save
         }
       />
       {panel === 'settings' && (
-        <SettingsPanel
-          score={score}
+        <SettingsPanel score={score} settings={settings} update={update} reset={reset} onClose={() => setPanel(null)} />
+      )}
+      {panel === 'export' && (
+        <ExportPanel
+          index={index}
+          name={name}
+          shownPartIds={shownParts}
           settings={settings}
-          update={update}
-          reset={reset}
-          onDownload={download}
+          onDownloadMusicXml={download}
           onSaveProject={onSaveProject}
           onClose={() => setPanel(null)}
         />

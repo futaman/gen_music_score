@@ -3,7 +3,7 @@
 
 import type { RenderRequest, RenderResponse } from './verovio.worker';
 
-export type RenderResult = { svg: string; ms: number; error?: string };
+export type RenderResult = { svg: string; pages?: string[]; ms: number; error?: string };
 
 export class Renderer {
   private worker: Worker | null = null;
@@ -17,7 +17,7 @@ export class Renderer {
     worker.onmessage = (e: MessageEvent<RenderResponse>) => {
       const m = e.data;
       if (m.type !== 'svg') return;
-      this.pending.get(m.id)?.({ svg: m.svg, ms: m.ms, error: m.error });
+      this.pending.get(m.id)?.({ svg: m.svg, pages: m.pages, ms: m.ms, error: m.error });
       this.pending.delete(m.id);
     };
     worker.onerror = (e) => {
@@ -34,8 +34,8 @@ export class Renderer {
     return worker;
   }
 
-  /** options が前回と違えば、描画の前に Verovio の設定を変える */
-  render(mei: string, options: Record<string, unknown>): Promise<RenderResult> {
+  /** options が前回と違えば、描画の前に Verovio の設定を変える。allPages なら全ページ（pages）も返す */
+  render(mei: string, options: Record<string, unknown>, allPages = false): Promise<RenderResult> {
     const worker = this.ensureWorker();
     const o = JSON.stringify(options);
     if (o !== this.lastOptions) {
@@ -45,7 +45,7 @@ export class Renderer {
     const id = ++this.seq;
     return new Promise((resolve) => {
       this.pending.set(id, resolve);
-      worker.postMessage({ type: 'render', id, mei } satisfies RenderRequest);
+      worker.postMessage({ type: 'render', id, mei, allPages } satisfies RenderRequest);
     });
   }
 

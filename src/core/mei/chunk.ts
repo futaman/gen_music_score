@@ -31,6 +31,8 @@ export type ChunkOptions = {
   noKeySignatureParts?: string[];
   /** 全休符が続く小節を、数字付きの1つの休符にまとめる */
   multiRest?: boolean;
+  /** 印刷用：ページの頭（1ページ目は曲名・作曲者・パート名、2ページ目以降はパート名と曲名） */
+  pageHead?: { title: string; subtitle?: string; composer?: string; partName?: string };
 };
 
 const MEI_DUR: Record<NoteType, string> = {
@@ -232,7 +234,30 @@ class MeiWriter {
       } else groups.push(defs[0]);
       i += partStaves.length;
     }
-    return tag('scoreDef', {}, tag('staffGrp', { symbol: 'bracket', 'bar.thru': 'true' }, groups.join('')));
+    // パートが1つなら括弧は付けない
+    const grp = tag('staffGrp', groups.length > 1 ? { symbol: 'bracket', 'bar.thru': 'true' } : {}, groups.join(''));
+    return tag('scoreDef', {}, this.pageHeadXml() + grp);
+  }
+
+  private pageHeadXml(): string {
+    const h = this.opts.pageHead;
+    if (!h) return '';
+    const rend = (attrs: Record<string, string>, text: string) => tag('rend', attrs, escapeXml(text));
+    const first = [
+      tag(
+        'rend',
+        { halign: 'center', valign: 'top' },
+        rend({ fontsize: 'x-large' }, h.title || ' ') + (h.subtitle ? '<lb/>' + rend({}, h.subtitle) : ''),
+      ),
+      h.partName ? rend({ halign: 'left', valign: 'bottom' }, h.partName) : '',
+      h.composer ? rend({ halign: 'right', valign: 'bottom' }, h.composer) : '',
+    ];
+    const other = [
+      h.partName ? rend({ halign: 'left', valign: 'top' }, h.partName) : '',
+      rend({ halign: 'right', valign: 'top' }, h.title),
+    ];
+    // ページ番号は PDF を作るときに入れる（Verovio はページごとに番号を変えないため）
+    return tag('pgHead', {}, first.join('')) + tag('pgHead2', {}, other.join(''));
   }
 
   /** 段の頭の楽器名。2段目以降は略称にして、どの段も同じ字下げにそろえる */
@@ -275,7 +300,7 @@ class MeiWriter {
       tag(
         'staff',
         { 'xml:id': `s${mi}-${s.part.id}-${s.staff}`, n: s.n },
-        tag('layer', { n: 1 }, tag('multiRest', { num: count })),
+        tag('layer', { n: 1 }, tag('multiRest', { num: count, block: 'true' })),
       ),
     );
     return tag('measure', attrs, staves.join(''));

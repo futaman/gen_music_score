@@ -6,7 +6,12 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: true,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: 'http://localhost:4173', trace: 'retain-on-failure' },
+  use: {
+    baseURL: 'http://localhost:4173',
+    trace: 'retain-on-failure',
+    // 言語設定のない環境だと、日本語のファイル名のダウンロードが「download」になるため
+    launchOptions: { env: { ...process.env, LANG: 'C.UTF-8' } },
+  },
   webServer: {
     command: 'npm run build && npx vite preview --port 4173 --strictPort',
     url: 'http://localhost:4173',

@@ -731,3 +731,11 @@ a {
   pointer-events: none;
   z-index: 2;
 }
+
+/* 書き出し：パートの選択 */
+.choice.checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}

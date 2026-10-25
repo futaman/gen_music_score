@@ -62,7 +62,7 @@ test('プロジェクトをファイルに保存し、そのファイルから�
   await openScore(page, 'mozart-k387.mxl');
   await tapNote(page, 1);
   await page.getByRole('button', { name: '休符' }).click();
-  await page.getByRole('button', { name: '設定' }).click();
+  await page.getByRole('button', { name: '書き出し' }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'プロジェクトをファイルに保存' }).click();
   const file = await download;

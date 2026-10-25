@@ -21,8 +21,10 @@
   },
   "dependencies": {
     "fflate": "^0.8.2",
+    "jspdf": "^3.0.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "svg2pdf.js": "^2.8.1",
     "tone": "^15.1.22",
     "txml": "^6.0.3",
     "verovio": "^6.3.0"

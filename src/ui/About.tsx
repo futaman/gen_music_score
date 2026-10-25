@@ -18,6 +18,11 @@ export function About() {
         <li>再生：Tone.js（MIT）</li>
         <li>画面：React（MIT）</li>
         <li>MusicXML の解析：txml（MIT）、.mxl の展開：fflate（MIT）</li>
+        <li>PDF の作成：jsPDF（MIT）、svg2pdf.js（MIT）</li>
+        <li>
+          PDF の日本語：BIZ UDP明朝（Morisawa、SIL Open Font License 1.1。JIS X 0208 の文字だけに絞ったもの。
+          <a href={`${import.meta.env.BASE_URL}fonts/OFL.txt`}>ライセンス全文</a>）
+        </li>
       </ul>
     </details>
   );

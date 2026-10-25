@@ -21,7 +21,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   const path = url.pathname;
-  const immutable = /\/assets\//.test(path) || /\/samples\//.test(path) || /\/icons\//.test(path);
+  const immutable =
+    /\/assets\//.test(path) || /\/samples\//.test(path) || /\/icons\//.test(path) || /\/fonts\//.test(path);
   if (immutable) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
