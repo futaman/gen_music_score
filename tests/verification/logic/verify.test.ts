@@ -136,6 +136,18 @@ describe('IO 読み込み・書き出し', () => {
     expect(r.warnings.length + overfullVoices(r.score).length).toBeGreaterThan(0);
   });
 
+  it('IO-11 本当に拍の足りない小節は、隣も短くても（反復記号・弱起の印がなければ）警告する', () => {
+    // 読み取りソフトの誤りでよくある形：4/4 で2拍しかない小節が2つ続く。合わせると1小節になるが、分割された小節ではない
+    const xml = xmlScore(
+      `<measure number="1">${attrs}${xnote('C', 4, 'whole')}</measure><measure number="2">${xnote('D', 2, 'half')}</measure>` +
+        `<measure number="3">${xnote('E', 2, 'half')}</measure><measure number="4">${xnote('F', 4, 'whole')}</measure>`,
+    );
+    const short = importMusicXml(xml)
+      .warnings.filter((w) => w.code === 'measure-length')
+      .map((w) => w.measure);
+    expect(short).toEqual([1, 2]);
+  });
+
   it('IO-08 保持のみの要素（歌詞・コード記号・運指）を書き出しに残す', () => {
     const xml = xmlScore(
       `<measure number="1">${attrs}<harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>${xnote(
