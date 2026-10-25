@@ -206,3 +206,13 @@ describe('元に戻す・やり直し', () => {
     expect(back).not.toBe(cur);
   });
 });
+
+describe('鍵盤で入力', () => {
+  it('高さどおりの音を、調号に合わせた綴りで', async () => {
+    const { enterMidi } = await import('./commands');
+    const s = makeScore([['-', '-', '-', '-']], -3);
+    expect(voice(enterMidi(s, 'n0-0', 63).score)[0]).toBe('E♭4:1/4'); // ハ短調（♭3つ）なので E♭
+    expect(voice(enterMidi(s, 'n0-0', 66).score)[0]).toBe('F♯4:1/4');
+    expect(voice(enterMidi(s, 'n0-0', 60).score)[0]).toBe('C4:1/4');
+  });
+});

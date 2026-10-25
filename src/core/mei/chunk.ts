@@ -248,7 +248,9 @@ class MeiWriter {
       const notes = all.filter((n) => n.staff === s.staff);
       const keyFifths = this.keyOf(s, this.index.keyAt[mi]);
       const accidentals = planAccidentals(notes, keyFifths, (p) => this.pitchOf(s, p));
-      staffXml.push(tag('staff', { n: s.n }, this.layers(s, mi, notes, accidentals)));
+      staffXml.push(
+        tag('staff', { 'xml:id': `s${mi}-${s.part.id}-${s.staff}`, n: s.n }, this.layers(s, mi, notes, accidentals)),
+      );
       controls.push(...this.noteControls(s, mi, notes));
       if (!partsDone.has(s.part.id)) {
         partsDone.add(s.part.id);

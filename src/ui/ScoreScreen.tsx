@@ -1,46 +1,352 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Player } from '../audio/player';
-import { buildTimeline } from '../core/playback/timeline';
+import { checkRanges } from '../core/check/range';
+import {
+  clearRange,
+  copyRange,
+  deleteMeasures,
+  enterMidi,
+  enterPitch,
+  addChordTone,
+  insertMeasures,
+  makeTuplet,
+  moveRangeToPart,
+  movePitch,
+  nextEvent,
+  octaveRange,
+  overfullVoices,
+  pasteRange,
+  previousEvent,
+  setDuration,
+  setDynamic,
+  setKeySignature,
+  setTimeSignature,
+  toggleArticulation,
+  toggleDot,
+  toggleSlur,
+  toggleTie,
+  toRest,
+  type Clipboard,
+  type EditResult,
+  type Selection,
+} from '../core/edit/commands';
+import { buildScoreIndex } from '../core/model/scoreIndex';
+import type { Note, NoteType, Score } from '../core/model/types';
+import { exportMusicXml } from '../core/musicxml/export';
+import { buildTimeline, type Timeline } from '../core/playback/timeline';
+import { midi, type Step } from '../core/theory/pitch';
+import { shiftOctaves } from '../core/transpose/transpose';
+import { EditBar, type EditAction } from './EditBar';
+import { Keyboard } from './Keyboard';
 import { PlaybackCursor } from './playback';
 import { PlayBar } from './PlayBar';
-import { buildScoreIndex } from '../core/model/scoreIndex';
-import type { Score } from '../core/model/types';
-import { ScoreView } from './ScoreView';
+import { RangePanel } from './RangePanel';
+import { ScoreView, visiblePartIds, type Marks, type ScoreTap } from './ScoreView';
 import { SettingsPanel } from './SettingsPanel';
 import { useDevice, useDisplaySettings } from './settings';
-import { checkRanges } from '../core/check/range';
-import { shiftOctaves } from '../core/transpose/transpose';
-import { exportMusicXml } from '../core/musicxml/export';
 import { TransposePanel } from './TransposePanel';
-import { RangePanel } from './RangePanel';
-import { visiblePartIds } from './ScoreView';
+import { useEditor } from './useEditor';
 
 type Props = { score: Score; fileName: string; onBack: () => void };
+
+const DURATION_KEYS: Record<string, NoteType> = {
+  '1': '64th',
+  '2': '32nd',
+  '3': '16th',
+  '4': 'eighth',
+  '5': 'quarter',
+  '6': 'half',
+  '7': 'whole',
+};
+
+/** 画面に描いた要素の id（単音は音の id、和音・休符は音符の id） */
+const elementIdOf = (n: Note) => (n.heads.length === 1 ? n.heads[0].id : n.id);
 
 export function ScoreScreen({ score: original, fileName, onBack }: Props) {
   const device = useDevice();
   const { settings, update, reset } = useDisplaySettings(device);
   const [panel, setPanel] = useState<'settings' | 'transpose' | 'range' | null>(null);
-  // 移調などで書き換えた楽譜（元の楽譜は original に残す）
-  const [score, setScore] = useState(original);
-  const [revision, setRevision] = useState(0);
+  const editor = useEditor(original);
+  const { score } = editor;
   const [toast, setToast] = useState<string | null>(null);
-  const change = (next: Score, message: string) => {
-    setScore(next);
-    setRevision((r) => r + 1);
-    setToast(message);
-  };
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
   const index = useMemo(() => buildScoreIndex(score), [score]);
+  const noteById = useMemo(() => new Map(score.notes.map((n) => [n.id, n])), [score]);
+  const viewRef = useRef<HTMLDivElement>(null);
 
-  // ---- 音域チェック（表示しているパートだけ）----
+  // ---- 選択 ----
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [rangeMode, setRangeMode] = useState(false);
+  const [slurPending, setSlurPending] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [clipboard, setClipboard] = useState<Clipboard | null>(null);
+  const selectedNote = selection?.kind === 'note' ? noteById.get(selection.noteId) : undefined;
   const shownParts = useMemo(() => visiblePartIds(score, settings), [score, settings]);
+
+  // ---- 再生 ----
+  const [player] = useState(() => new Player());
+  useSyncExternalStore(player.subscribe, player.getVersion);
+  useEffect(() => () => player.dispose(), [player]);
+  // 再生の準備（イベント列）は再生するときに作る（編集のたびに作ると遅いため）
+  const [playing, setPlaying] = useState<{ index: typeof index; timeline: Timeline; cursor: PlaybackCursor } | null>(
+    null,
+  );
+  const [markIndex, setMarkIndex] = useState(0);
+  const follow = settings.follow;
+  useEffect(
+    () =>
+      player.subscribe(() => {
+        if (player.state === 'stopped') playing?.cursor.reset();
+      }),
+    [player, playing],
+  );
+  useEffect(() => {
+    if (player.state !== 'playing' || !playing) return;
+    let raf = 0;
+    const loop = () => {
+      const pos = player.now();
+      playing.cursor.update(pos, follow);
+      setMarkIndex(playing.cursor.markAt(pos));
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [player, player.state, playing, follow]);
+  const startMeasure = selectedNote?.measure ?? (selection?.kind === 'range' ? selection.start : null);
+  const mark = player.state === 'stopped' || !playing ? undefined : playing.timeline.measures[markIndex];
+  const measureLabel = mark
+    ? `${score.measures[mark.measure]?.displayNumber} / ${score.measures.length}小節`
+    : `${score.measures.length}小節`;
+  const play = () => {
+    let p = playing;
+    if (!p || p.index !== index) {
+      player.stop();
+      const timeline = buildTimeline(index);
+      p = { index, timeline, cursor: new PlaybackCursor(timeline, viewRef) };
+      player.setTimeline(timeline);
+      setPlaying(p);
+    }
+    if (player.state === 'stopped' && startMeasure !== null) {
+      const m = p.timeline.measures.find((x) => x.measure === startMeasure);
+      if (m) player.seek(m.time);
+    }
+    void player.play(score.parts);
+  };
+
+  // ---- 編集 ----
+  const apply = useCallback(
+    (r: EditResult, label: string) => {
+      if (player.state === 'playing') player.pause();
+      const message = editor.apply(r, label);
+      if (r.select) setSelection(r.select);
+      const over = r.changed === 'all' ? [] : overfullVoices(r.score, r.changed);
+      setToast(
+        over.length
+          ? `${score.measures[over[0].measure]?.displayNumber}小節目の拍があふれています（赤い音）`
+          : (message ?? null),
+      );
+    },
+    [editor, player, score.measures],
+  );
+  const replaceScore = (next: Score, message: string) => {
+    apply({ score: next, changed: 'all' }, message);
+    setToast(message);
+  };
+
+  const doAction = (a: EditAction) => {
+    if (a.type === 'deselect') {
+      setSelection(null);
+      setRangeMode(false);
+      setSlurPending(false);
+      return;
+    }
+    if (a.type === 'range') return setRangeMode((v) => !v);
+    if (a.type === 'keyboard') return setKeyboardOpen((v) => !v);
+    if (selection?.kind === 'note' && selectedNote) {
+      const n = selectedNote;
+      const heads = selection.headId ? [selection.headId] : n.heads.map((h) => h.id);
+      switch (a.type) {
+        case 'pitch':
+          return apply(movePitch(score, heads, a.how), '音高');
+        case 'duration':
+          return apply(setDuration(score, n.id, a.value), '音価');
+        case 'dot':
+          return apply(toggleDot(score, n.id), '付点');
+        case 'triplet':
+          return apply(makeTuplet(score, n.id), '3連符');
+        case 'rest':
+          return apply(toRest(score, [n.id]), '休符');
+        case 'tie':
+          return apply(toggleTie(score, n.id), 'タイ');
+        case 'slur':
+          setSlurPending((v) => !v);
+          return setToast('スラーの終わりの音をタップしてください');
+        case 'artic':
+          return apply(toggleArticulation(score, [n.id], a.name), '記号');
+        case 'dynamic':
+          return apply(setDynamic(score, n.id, a.value), '強弱');
+      }
+    }
+    if (selection?.kind === 'range') {
+      const r = selection;
+      switch (a.type) {
+        case 'copy':
+          setClipboard(copyRange(score, r));
+          return setToast(`${r.end - r.start}小節をコピーしました`);
+        case 'paste':
+          if (!clipboard) return setToast('コピーしたものがありません');
+          return apply(pasteRange(score, r.partIds, r.start, clipboard), '貼り付け');
+        case 'clear':
+          return apply(clearRange(score, r), '消す');
+        case 'range-octave':
+          return apply(octaveRange(score, r, a.octaves), 'オクターブ');
+        case 'move-to':
+          return apply(moveRangeToPart(score, r, a.partId), '別の楽器へ移す');
+        case 'insert-measure':
+          return apply(insertMeasures(score, r.start, 1), '小節を挿入');
+        case 'delete-measures':
+          setSelection(null);
+          return apply(deleteMeasures(score, r.start, r.end), '小節を削除');
+        case 'time':
+          return apply(setTimeSignature(score, r.start, a.beats, a.beatType), '拍子');
+        case 'key':
+          return apply(setKeySignature(score, r.start, a.fifths), '調号');
+      }
+    }
+  };
+
+  const onTap = (t: ScoreTap) => {
+    if (player.state === 'playing') return;
+    const note = t.elementId ? (index.noteOfHead.get(t.elementId) ?? noteById.get(t.elementId)) : undefined;
+    let target: { partId: string; measure: number } | null = note
+      ? { partId: note.partId, measure: note.measure }
+      : null;
+    if (!target && t.staffId && t.measure !== undefined) {
+      const m = /^s(\d+)-(.+)-(\d+)$/.exec(t.staffId);
+      if (m) target = { partId: m[2], measure: Number(m[1]) };
+    }
+    if (!target) return;
+    if (slurPending && note && selectedNote) {
+      setSlurPending(false);
+      return apply(toggleSlur(score, selectedNote.id, note.id), 'スラー');
+    }
+    if ((t.shift || rangeMode) && selection) {
+      const anchor =
+        selection.kind === 'note'
+          ? { partId: selectedNote?.partId ?? target.partId, measure: selectedNote?.measure ?? target.measure }
+          : { partId: selection.partIds[0], measure: selection.start };
+      const order = shownParts;
+      const [a, b] = [order.indexOf(anchor.partId), order.indexOf(target.partId)].sort((x, y) => x - y);
+      setSelection({
+        kind: 'range',
+        partIds: order.slice(Math.max(0, a), b + 1),
+        start: Math.min(anchor.measure, target.measure),
+        end: Math.max(anchor.measure, target.measure) + 1,
+      });
+      setRangeMode(false);
+      return;
+    }
+    if (note)
+      setSelection({
+        kind: 'note',
+        noteId: note.id,
+        headId: note.heads.length > 1 && t.elementId !== note.id ? t.elementId : undefined,
+      });
+    else setSelection({ kind: 'range', partIds: [target.partId], start: target.measure, end: target.measure + 1 });
+    if (player.state === 'paused') player.stop();
+  };
+
+  // ---- キーボード（PC） ----
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest('input, select, textarea') || panel) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) editor.redo();
+        else editor.undo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        return editor.redo();
+      }
+      if (e.key === 'Escape') return doAction({ type: 'deselect' });
+      if (selection?.kind === 'range') {
+        if (mod && e.key.toLowerCase() === 'c') return doAction({ type: 'copy' });
+        if (mod && e.key.toLowerCase() === 'v') return doAction({ type: 'paste' });
+        if (e.key === 'Delete' || e.key === 'Backspace') return doAction({ type: 'clear' });
+        return;
+      }
+      if (!selectedNote) return;
+      const n = selectedNote;
+      const letter = e.key.toUpperCase();
+      if (!mod && /^[A-G]$/.test(letter)) {
+        e.preventDefault();
+        if (e.shiftKey) return apply(addChordTone(score, n.id, letter as Step), '和音');
+        return apply(enterPitch(score, n.id, letter as Step), '音名');
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const up = e.key === 'ArrowUp';
+        return doAction({
+          type: 'pitch',
+          how: mod ? (up ? 'octave-up' : 'octave-down') : up ? 'semitone-up' : 'semitone-down',
+        });
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const next = e.key === 'ArrowRight' ? nextEvent(score, n) : previousEvent(score, n);
+        if (next) setSelection({ kind: 'note', noteId: next.id });
+        return;
+      }
+      if (mod && e.key === '3') {
+        e.preventDefault();
+        return doAction({ type: 'triplet' });
+      }
+      if (!mod && DURATION_KEYS[e.key]) return doAction({ type: 'duration', value: DURATION_KEYS[e.key] });
+      if (e.key === '.') return doAction({ type: 'dot' });
+      if (e.key === '0' || e.key === 'Delete' || e.key === 'Backspace') return doAction({ type: 'rest' });
+      if (!mod && e.key.toLowerCase() === 't') return doAction({ type: 'tie' });
+      if (!mod && e.key.toLowerCase() === 's') return doAction({ type: 'slur' });
+      if (!mod && e.key.toLowerCase() === 'j') return doAction({ type: 'pitch', how: 'enharmonic' });
+    };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  });
+
+  // ---- 警告 ----
   const issues = useMemo(() => checkRanges(score, shownParts), [score, shownParts]);
-  const warnHeads = useMemo(() => new Set(issues.map((i) => i.headId)), [issues]);
+  const overfull = useMemo(() => overfullVoices(score), [score]);
+  const warn = useMemo(() => {
+    const set = new Set(issues.map((i) => i.headId));
+    for (const o of overfull) {
+      for (const n of score.notes) {
+        if (n.partId === o.partId && n.measure === o.measure && n.staff === o.staff && n.voice === o.voice)
+          set.add(elementIdOf(n));
+      }
+    }
+    return set;
+  }, [issues, overfull, score.notes]);
+  const marks = useMemo((): Marks => {
+    const sel = new Set<string>();
+    const selStaff = new Set<string>();
+    if (selection?.kind === 'note' && selectedNote) sel.add(selection.headId ?? elementIdOf(selectedNote));
+    if (selection?.kind === 'range') {
+      for (const pid of selection.partIds) {
+        const staves = score.parts.find((p) => p.id === pid)?.staves ?? 1;
+        for (let m = selection.start; m < selection.end; m++)
+          for (let st = 1; st <= staves; st++) selStaff.add(`s${m}-${pid}-${st}`);
+      }
+    }
+    return { sel, 'sel-staff': selStaff, ...(settings.warnings ? { warn } : {}) };
+  }, [selection, selectedNote, score.parts, settings.warnings, warn]);
+
   const jumpTo = (measure: number) => {
     const section = [...(viewRef.current?.querySelectorAll<HTMLElement>('section.chunk') ?? [])].find(
       (s) => Number(s.dataset.start) <= measure && measure < Number(s.dataset.end),
@@ -55,64 +361,40 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
-  const viewRef = useRef<HTMLDivElement>(null);
-
-  // ---- 再生 ----
-  const timeline = useMemo(() => buildTimeline(index), [index]);
-  const [player] = useState(() => new Player());
-  useSyncExternalStore(player.subscribe, player.getVersion);
-  const cursor = useMemo(() => new PlaybackCursor(timeline, viewRef), [timeline]);
-  const [startMeasure, setStartMeasure] = useState<number | null>(null);
-  const [markIndex, setMarkIndex] = useState(0);
-  const follow = settings.follow;
-  useEffect(() => {
-    player.setTimeline(timeline);
-    return () => player.stop();
-  }, [player, timeline]);
-  useEffect(() => () => player.dispose(), [player]);
-  // 止めたら色付けを消す
-  useEffect(
-    () =>
-      player.subscribe(() => {
-        if (player.state === 'stopped') cursor.reset();
-      }),
-    [player, cursor],
-  );
-  useEffect(() => {
-    if (player.state !== 'playing') return;
-    let raf = 0;
-    const loop = () => {
-      const pos = player.now();
-      cursor.update(pos, follow);
-      setMarkIndex(cursor.markAt(pos));
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [player, player.state, cursor, follow]);
-  const mark = player.state === 'stopped' ? undefined : timeline.measures[markIndex];
-  const measureLabel = mark
-    ? `${score.measures[mark.measure]?.displayNumber} / ${score.measures.length}小節`
-    : `${score.measures.length}小節`;
-  const play = () => {
-    if (player.state === 'stopped' && startMeasure !== null) {
-      const m = timeline.measures.find((x) => x.measure === startMeasure);
-      if (m) player.seek(m.time);
-    }
-    void player.play(score.parts);
-  };
 
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
   }, [settings.theme]);
 
+  const keyboardCenter = selectedNote?.heads[0] ? midi(selectedNote.heads[0].pitch) : 60;
+
   return (
-    <div className={`score-screen device-${device}`}>
+    <div
+      className={`score-screen device-${device}${selection ? ' editing' : ''}${keyboardOpen && selectedNote ? ' with-keyboard' : ''}`}
+    >
       <header className="toolbar">
         <button className="button" onClick={onBack} aria-label="戻る">
           ←
         </button>
         <h1 className="title">{score.title || '（曲名なし）'}</h1>
+        <button
+          className="button"
+          onClick={editor.undo}
+          disabled={!editor.canUndo}
+          aria-label="元に戻す"
+          title="元に戻す（Ctrl+Z）"
+        >
+          ↶
+        </button>
+        <button
+          className="button"
+          onClick={editor.redo}
+          disabled={!editor.canRedo}
+          aria-label="やり直し"
+          title="やり直し（Ctrl+Shift+Z）"
+        >
+          ↷
+        </button>
         <div className="segmented" role="radiogroup" aria-label="音の高さ">
           {(
             [
@@ -161,17 +443,26 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
           settings={settings}
           device={device}
           containerRef={viewRef}
-          revision={revision}
-          warnHeads={warnHeads}
+          edit={editor.edit}
+          marks={marks}
+          onTap={onTap}
           onZoom={(zoom) => update({ zoom })}
-          onMeasureTap={(mi) => {
-            if (player.state === 'playing') return;
-            setStartMeasure(mi);
-            const m = timeline.measures.find((x) => x.measure === mi);
-            if (m && player.state === 'paused') player.seek(m.time);
-          }}
         />
       </main>
+      {selection && (
+        <EditBar
+          score={score}
+          selection={selection}
+          rangeMode={rangeMode}
+          slurPending={slurPending}
+          keyboardOpen={keyboardOpen}
+          canPaste={!!clipboard}
+          onAction={doAction}
+        />
+      )}
+      {selection?.kind === 'note' && keyboardOpen && (
+        <Keyboard center={keyboardCenter} onKey={(m) => apply(enterMidi(score, selection.noteId, m), '鍵盤')} />
+      )}
       <PlayBar
         player={player}
         score={score}
@@ -202,12 +493,12 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
         <TransposePanel
           score={score}
           onChange={(next, message) => {
-            change(next, message);
+            replaceScore(next, message);
             setPanel(null);
           }}
           onPartCreated={(partId) => update({ view: 'part', partId, pitchMode: 'written' })}
           onReset={() => {
-            change(original, '元の楽譜に戻しました');
+            replaceScore(original, '元の楽譜に戻しました（元に戻すで取り消せます）');
             setPanel(null);
           }}
           onClose={() => setPanel(null)}
@@ -223,7 +514,11 @@ export function ScoreScreen({ score: original, fileName, onBack }: Props) {
               const ids = new Set(list.filter((i) => i.suggestOctaves === o).map((i) => i.headId));
               if (ids.size) next = shiftOctaves(next, ids, o);
             }
-            change(next, `${list.length}音のオクターブを動かしました`);
+            apply(
+              { score: next, changed: [...new Set(list.map((i) => i.measure))] },
+              `${list.length}音のオクターブを動かしました`,
+            );
+            setToast(`${list.length}音のオクターブを動かしました`);
           }}
           onJump={(m) => {
             setPanel(null);

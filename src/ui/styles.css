@@ -560,3 +560,111 @@ a {
   padding: 0 4px;
   text-decoration: underline;
 }
+
+/* ---- 編集 ---- */
+.editbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(61px + env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  overflow-x: auto;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08);
+  scrollbar-width: thin;
+}
+.editbar .button,
+.editbar select {
+  flex: none;
+  white-space: nowrap;
+}
+.editbar .sep {
+  flex: none;
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 4px 2px;
+}
+.keyboard {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(118px + env(safe-area-inset-bottom));
+  z-index: 10;
+  height: 132px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.keyboard .keys {
+  position: relative;
+  height: 124px;
+  margin: 4px 0;
+}
+.keyboard button {
+  position: absolute;
+  top: 0;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  padding: 0 0 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.keyboard .white {
+  width: 40px;
+  height: 124px;
+  background: #fff;
+  color: #555;
+  border-radius: 0 0 6px 6px;
+}
+.keyboard .black {
+  width: 26px;
+  height: 76px;
+  background: #222;
+  border-color: #000;
+  border-radius: 0 0 4px 4px;
+  z-index: 1;
+}
+.keyboard button:active {
+  filter: brightness(0.8);
+}
+.score-screen.editing .score-view {
+  padding-bottom: 180px;
+}
+.score-screen.with-keyboard .score-view {
+  padding-bottom: 320px;
+}
+.chunk svg .sel,
+.chunk svg .sel * {
+  fill: var(--accent);
+  color: var(--accent);
+}
+.chunk svg .warn,
+.chunk svg .warn * {
+  fill: #d70015;
+  color: #d70015;
+}
+.chunk svg .sel-staff {
+  fill: var(--accent);
+}
+.chunk svg .sel-staff > path,
+.chunk svg .sel-staff > g.ledgerLines path {
+  stroke: var(--accent);
+  stroke-width: 30;
+  opacity: 0.5;
+}
+.chunk svg g.note,
+.chunk svg g.rest,
+.chunk svg g.mRest,
+.chunk svg g.chord {
+  cursor: pointer;
+}
