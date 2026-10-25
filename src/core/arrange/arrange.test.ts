@@ -9,7 +9,10 @@ import { analyzeSection, estimateRoles, sectionStarts, sourceUnits } from './ana
 import { planArrangement } from './assign';
 
 /** パートごとに「小節 → 音の並び」。'C5:4' は4分音符、'-:2' は2分休符。拍子は4/4 */
-function build(parts: Record<string, { instrument: string; measures: string[] }>, meta: Partial<MeasureMeta>[] = []) {
+export function build(
+  parts: Record<string, { instrument: string; measures: string[] }>,
+  meta: Partial<MeasureMeta>[] = [],
+) {
   const notes: Note[] = [];
   let k = 0;
   const count = Math.max(...Object.values(parts).map((p) => p.measures.length));

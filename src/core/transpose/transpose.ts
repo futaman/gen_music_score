@@ -4,7 +4,7 @@
 
 import { getInstrument } from '../instruments';
 import { makeRests, newId, splitDuration } from '../model/rhythm';
-import type { ClefChange, Direction, MeasureMeta, Note, Part, Score } from '../model/types';
+import type { ClefChange, Direction, MeasureMeta, Note, NoteHead, Part, Score } from '../model/types';
 import { add, cmp, lt, sub, ZERO, type Fraction } from '../theory/fraction';
 import { AlterOverflowError, intervalBetween, transposePitch, type Interval } from '../theory/interval';
 import {
@@ -246,11 +246,20 @@ function clefOf(text: string): Pick<ClefChange, 'sign' | 'line'> {
   return { sign: sign as ClefChange['sign'], line: Number(text.slice(sign.length)) || 2 };
 }
 
+/** 同じ位置で始まる音（和音・複数の声部）から、残す1音を選ぶ */
+export type HeadPicker = (candidates: Note[]) => { note: Note; head: NoteHead };
+
+/** いちばん高い音 */
+export const pickTop: HeadPicker = (cs) => {
+  const note = cs.reduce((a, b) => (top(b) > top(a) ? b : a));
+  return { note, head: note.heads.reduce((a, b) => (midi(b.pitch) > midi(a.pitch) ? b : a)) };
+};
+
 /**
- * 単旋律の取り出し（最小版）：指定した段から、同時に鳴る音のうちいちばん高い音を拾う。
+ * 単旋律の取り出し：指定した段から、同時に鳴る音のうち1音（既定はいちばん高い音）を拾う。
  * 前の音が鳴っている間に次の音が始まったら、前の音はそこで切る。タイは両側が残ったときだけ残す。
  */
-export function extractMelody(notes: Note[], staff: number): Note[] {
+export function extractMelody(notes: Note[], staff: number, pick: HeadPicker = pickTop): Note[] {
   const byMeasure = new Map<number, Note[]>();
   const graces = notes.filter((n) => n.staff === staff && n.grace);
   for (const n of notes) {
@@ -261,15 +270,19 @@ export function extractMelody(notes: Note[], staff: number): Note[] {
   }
   const out: Note[] = [];
   for (const [, list] of [...byMeasure.entries()].sort((a, b) => a[0] - b[0])) {
-    // 同じ位置で始まる音の中から、いちばん高い音を持つ音符を選ぶ
-    const starts = new Map<string, Note>();
+    // 同じ位置で始まる音の中から1音を選ぶ
+    const groups = new Map<string, Note[]>();
     for (const n of list) {
       if (n.heads.length === 0) continue;
       const key = `${n.onset.num}/${n.onset.den}`;
-      const cur = starts.get(key);
-      if (!cur || top(n) > top(cur)) starts.set(key, n);
+      groups.set(key, [...(groups.get(key) ?? []), n]);
     }
-    const sorted = [...starts.values()].sort((a, b) => cmp(a.onset, b.onset));
+    const picked = new Map<Note, NoteHead>();
+    for (const cs of groups.values()) {
+      const { note, head } = pick(cs);
+      picked.set(note, head);
+    }
+    const sorted = [...picked.keys()].sort((a, b) => cmp(a.onset, b.onset));
     const measureEnd = list.reduce<Fraction>(
       (m, n) => (cmp(add(n.onset, n.duration), m) > 0 ? add(n.onset, n.duration) : m),
       ZERO,
@@ -285,7 +298,7 @@ export function extractMelody(notes: Note[], staff: number): Note[] {
         if (g.measure === n.measure && g.voice === n.voice && cmp(g.onset, n.onset) === 0)
           out.push({ ...g, voice: 1, beams: undefined });
       }
-      const head = n.heads.reduce((a, b) => (midi(b.pitch) > midi(a.pitch) ? b : a));
+      const head = picked.get(n)!;
       const base: Note = { ...n, voice: 1, heads: [{ ...head }], beams: undefined };
       if (cmp(duration, n.duration) === 0) out.push(base);
       else out.push(...splitNote(base, n.onset, duration));
@@ -339,7 +352,7 @@ function splitNote(n: Note, onset: Fraction, duration: Fraction): Note[] {
 }
 
 /** タイ：つながる相手（同じ高さで、終わった位置から始まる音）が残っていなければ外す */
-function fixTies(notes: Note[]) {
+export function fixTies(notes: Note[]) {
   const at = new Map<string, Note[]>();
   const key = (m: number, f: Fraction) => `${m}|${f.num}/${f.den}`;
   for (const n of notes) {
