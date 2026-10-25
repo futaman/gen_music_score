@@ -369,21 +369,41 @@ select {
 }
 
 /* スマホ：曲名は出さず、操作を1行に収める */
+.toolbar-actions {
+  display: contents;
+}
+/* スマホ：1段目 ←・元に戻す・やり直し・記譜／実音、2段目 パートと楽譜の選択、3段目 操作ボタン（どれも44px以上） */
 .device-phone .toolbar {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   padding-left: 8px;
   padding-right: 8px;
   gap: 6px;
+}
+.device-phone .toolbar-actions {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 6px;
+}
+.device-phone .toolbar-actions .button {
+  flex: 1 1 0;
+  padding: 0 4px;
+  white-space: nowrap;
 }
 .device-phone .toolbar .title {
   display: none;
 }
 .device-phone .toolbar select {
-  flex: 1;
+  flex: 1 1 40%;
   min-width: 0;
 }
+.device-phone .toolbar .segmented {
+  flex-wrap: nowrap;
+}
 .device-phone .toolbar .segmented label {
+  min-width: 52px;
+  justify-content: center;
   padding: 0 10px;
+  white-space: nowrap;
 }
 .device-phone .score-view {
   padding-left: 8px;
@@ -446,6 +466,53 @@ select {
 .mixer-tempo .tempo input {
   flex: 1;
   min-height: 44px;
+}
+/* 色分け「編曲元パートごと」 */
+.chunk svg .src0,
+.chunk svg .src0 * {
+  fill: #1f6fd1;
+  color: #1f6fd1;
+}
+.chunk svg .src1,
+.chunk svg .src1 * {
+  fill: #c2410c;
+  color: #c2410c;
+}
+.chunk svg .src2,
+.chunk svg .src2 * {
+  fill: #15803d;
+  color: #15803d;
+}
+.chunk svg .src3,
+.chunk svg .src3 * {
+  fill: #9333ea;
+  color: #9333ea;
+}
+.chunk svg .src4,
+.chunk svg .src4 * {
+  fill: #b91c1c;
+  color: #b91c1c;
+}
+.chunk svg .src5,
+.chunk svg .src5 * {
+  fill: #0e7490;
+  color: #0e7490;
+}
+.chunk svg .src6,
+.chunk svg .src6 * {
+  fill: #a16207;
+  color: #a16207;
+}
+.chunk svg .src7,
+.chunk svg .src7 * {
+  fill: #be185d;
+  color: #be185d;
+}
+/* 手で直した音 */
+.chunk svg .edited,
+.chunk svg .edited * {
+  fill: #c2410c;
+  color: #c2410c;
 }
 .chunk svg .playing,
 .chunk svg .playing * {
@@ -763,12 +830,6 @@ a {
 .arrange-table select {
   max-width: 150px;
   font-size: 13px;
-}
-/* 手で直した音 */
-.chunk svg .edited,
-.chunk svg .edited * {
-  fill: #c2410c;
-  color: #c2410c;
 }
 
 .arrange-table .row-tools {

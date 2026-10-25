@@ -184,8 +184,10 @@ export function SettingsPanel({ score, settings, update, reset, onClose }: Props
           name="colorBy"
           value={settings.colorBy}
           options={[
+            { value: 'auto', label: '自動' },
             { value: 'none', label: 'なし' },
             { value: 'instrument', label: '楽器ごと' },
+            { value: 'source', label: '編曲元パートごと' },
           ]}
           onChange={(v) => update({ colorBy: v as DisplaySettings['colorBy'] })}
         />
