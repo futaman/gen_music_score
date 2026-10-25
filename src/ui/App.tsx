@@ -17,6 +17,7 @@ import {
   type ProjectSummary,
 } from '../storage/projects';
 import { About } from './About';
+import { Help } from './Help';
 import { ImportSummary } from './ImportSummary';
 import { importInWorker } from './importScore';
 import { ProjectScreen } from './ProjectScreen';
@@ -258,6 +259,7 @@ export function App() {
           </ul>
         </section>
       )}
+      <Help />
       <details className="about">
         <summary>楽譜の画像・PDFから作るには</summary>
         <p className="muted">
