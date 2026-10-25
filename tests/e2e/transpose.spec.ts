@@ -59,3 +59,20 @@ test('音域外の音を赤く表示し、候補どおりに直せる', async ({
     )
     .toBeLessThan(before);
 });
+
+test('音程は「種類 × 度数＋オクターブ」で指定できる（増2度、長9度など）', async ({ page }) => {
+  await openScore(page, 'mozart-k464-1-allegro.mxl');
+  await page.getByRole('button', { name: '移調', exact: true }).click();
+  await page.getByText('音程を指定').click();
+  await page.getByLabel('度数').selectOption('2');
+  await page.getByLabel('音程の種類').selectOption({ label: '増' });
+  await expect(page.getByTestId('transpose-preview')).toContainText('増2度上');
+  await page.getByLabel('音程の種類').selectOption({ label: '長' });
+  await page.getByLabel('足すオクターブ').selectOption({ label: '1オクターブ' });
+  await expect(page.getByTestId('transpose-preview')).toContainText('長9度上');
+  // 完全系の度数にすると、種類は「完全」に変わる
+  await page.getByLabel('度数').selectOption('5');
+  await expect(page.getByLabel('音程の種類')).toHaveValue('P');
+  await page.getByRole('button', { name: '移調する' }).click();
+  await expect(page.getByRole('status')).toContainText('移調しました');
+});
