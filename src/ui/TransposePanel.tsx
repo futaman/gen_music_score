@@ -14,7 +14,11 @@ type Props = {
   onClose: () => void;
 };
 
-const INTERVALS = ['m2', 'M2', 'm3', 'M3', 'P4', 'A4', 'd5', 'P5', 'm6', 'M6', 'm7', 'M7', 'P8'];
+/** 音程：種類 × 度数（1〜8）＋オクターブ数（docs/spec.md「移調の細則」） */
+const QUALITY_LABEL: Record<string, string> = { P: '完全', M: '長', m: '短', A: '増', d: '減' };
+const PERFECT_DEGREES = new Set([1, 4, 5, 8]);
+const qualitiesFor = (degree: number) =>
+  degree === 1 ? ['P', 'A'] : PERFECT_DEGREES.has(degree) ? ['P', 'A', 'd'] : ['M', 'm', 'A', 'd'];
 // 移調楽器を先に並べる
 const TRANSPOSING_FIRST = [
   'clarinet-bb',
@@ -31,7 +35,10 @@ export function TransposePanel({ score, onChange, onPartCreated, onReset, onClos
   const firstKey = score.measures[0]?.key ?? { fifths: 0, mode: 'major' as const };
   const [by, setBy] = useState<'key' | 'interval'>('key');
   const [targetFifths, setTargetFifths] = useState(firstKey.fifths);
-  const [intervalText, setIntervalText] = useState('M2');
+  const [quality, setQuality] = useState('M');
+  const [degree, setDegree] = useState(2);
+  const [octaves, setOctaves] = useState(0);
+  const intervalText = `${quality}${degree + 7 * octaves}`;
   const [dir, setDir] = useState<'up' | 'down'>('up');
   const [flavor, setFlavor] = useState<KeyFlavor>('auto');
   const [allParts, setAllParts] = useState(true);
@@ -112,16 +119,46 @@ export function TransposePanel({ score, onChange, onPartCreated, onReset, onClos
             </select>
           </label>
         ) : (
-          <label className="field">
-            音程
-            <select value={intervalText} onChange={(e) => setIntervalText(e.target.value)} aria-label="音程">
-              {INTERVALS.map((iv) => (
-                <option key={iv} value={iv}>
-                  {intervalName(parseInterval(iv))}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="row">
+            <label className="field">
+              度数
+              <select
+                aria-label="度数"
+                value={degree}
+                onChange={(e) => {
+                  const d = Number(e.target.value);
+                  setDegree(d);
+                  if (!qualitiesFor(d).includes(quality)) setQuality(PERFECT_DEGREES.has(d) ? 'P' : 'M');
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((d) => (
+                  <option key={d} value={d}>
+                    {d}度
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              種類
+              <select aria-label="音程の種類" value={quality} onChange={(e) => setQuality(e.target.value)}>
+                {qualitiesFor(degree).map((q) => (
+                  <option key={q} value={q}>
+                    {QUALITY_LABEL[q]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              さらに
+              <select aria-label="足すオクターブ" value={octaves} onChange={(e) => setOctaves(Number(e.target.value))}>
+                {[0, 1, 2, 3].map((o) => (
+                  <option key={o} value={o}>
+                    {o === 0 ? 'なし' : `${o}オクターブ`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         )}
         <div className="row">
           <div className="segmented" role="radiogroup" aria-label="向き">

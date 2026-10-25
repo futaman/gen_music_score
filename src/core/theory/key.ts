@@ -1,6 +1,6 @@
 // 調号。fifths（♯の数、♭は負）で持つ。
 
-import { transposePitch, type Interval } from './interval';
+import type { Interval } from './interval';
 import { pitch, STEPS, type Alter, type Pitch, type Step } from './pitch';
 
 export type Mode = 'major' | 'minor';
@@ -42,8 +42,10 @@ export function tonicOf(key: Key): Pitch {
 
 /** 調を移調する（主音を度数どおりに動かして調号を求める） */
 export function transposeKey(key: Key, iv: Interval): Key {
-  const tonic = transposePitch(tonicOf(key), iv);
-  return { fifths: fifthsOfTonic(tonic, key.mode), mode: key.mode };
+  // 五度圏の上で動かす：音程は「半音 × 7 − 度 × 12」だけ五度圏を進む（長2度 = +2、短2度 = −5、完全5度 = +1）。
+  // 主音の綴りを経由しないので、♯♯・♭♭を超える調（C♭メジャーを増2度上げるなど）でも例外にならない。
+  // ♯・♭が7つを超えた調はそのまま返す（異名同音の調への置き換えは呼び出し側）
+  return { fifths: key.fifths + 7 * iv.chromatic - 12 * iv.diatonic, mode: key.mode };
 }
 
 /** ♯・♭が7つを超える調を異名同音の調にする（G♯メジャー → A♭メジャー） */

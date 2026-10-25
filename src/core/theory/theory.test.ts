@@ -114,6 +114,13 @@ describe('調号', () => {
     expect(transposeKey({ fifths: 0, mode: 'major' }, parseInterval('P5')).fifths).toBe(1); // G
     expect(transposeKey({ fifths: 0, mode: 'major' }, parseInterval('M6')).fifths).toBe(3); // A
   });
+  it('主音の綴りが♯♯・♭♭を超えても例外にならない（C♭メジャーを増2度上げる → Dメジャー、C♯メジャーを増4度上げる → F𝄪メジャー ♯13 → Gメジャー）', () => {
+    expect(transposeKey({ fifths: -7, mode: 'major' }, parseInterval('A2')).fifths).toBe(-7 + 9);
+    // C♭メジャーを増2度下げると主音は A♭♭♭（♭16。以前は例外）→ 異名同音の A♭メジャー（♭4）
+    expect(normalizeKey(transposeKey({ fifths: -7, mode: 'major' }, { diatonic: -1, chromatic: -3 })).fifths).toBe(-4);
+    expect(transposeKey({ fifths: 7, mode: 'major' }, parseInterval('A4')).fifths).toBe(13);
+    expect(normalizeKey(transposeKey({ fifths: 7, mode: 'major' }, parseInterval('A4'))).fifths).toBe(1);
+  });
   it('♯♭7つを超える調は異名同音へ、6つ同士は♯系を既定に', () => {
     expect(normalizeKey({ fifths: 8, mode: 'major' }).fifths).toBe(-4); // G♯ → A♭
     expect(simplestKey({ fifths: -6, mode: 'major' }).fifths).toBe(6); // G♭ → F♯

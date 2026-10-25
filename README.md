@@ -5,6 +5,7 @@
 - 仕様：[`docs/spec.md`](docs/spec.md)
 - 開発計画：[`docs/dev-plan.md`](docs/dev-plan.md)
 - 判断の記録：[`docs/decisions/`](docs/decisions/)
+- 検証：[`docs/verification/spec.md`](docs/verification/spec.md)（検証仕様）・[`docs/verification/`](docs/verification/)（報告書）
 
 ## 開発
 
@@ -14,6 +15,8 @@ npm run dev            # 開発サーバー
 npm run check          # 型・lint・整形・単体テストをまとめて
 npm run test:e2e       # 画面テスト（PC・タブレット・スマホの画面サイズ）
 npm run check:musescore  # MuseScore 3 を使った往復確認（mscore3 が必要。CIでは動かさない）
+npm run verify:logic     # 検証者のロジック検証（CIでは動かさない）
+npm run verify:ui        # 検証者の画面検証（CIでは動かさない）
 ```
 
 ## 構成

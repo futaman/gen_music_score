@@ -57,7 +57,10 @@ test('編曲案を作り、割当表を直し、警告から小節へ移動で�
   await expect(page.getByRole('dialog', { name: '編曲' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'コピー' })).toBeVisible(); // 小節が選ばれている
 
-  // 手で直した音は色が付く
+  // 手で直した音は、設定で「色で示す」にすると色が付く（既定は示さない）
+  await page.getByRole('button', { name: '設定' }).click();
+  await page.getByRole('radiogroup', { name: '手で直した音（編曲）' }).getByText('色で示す').click();
+  await page.getByRole('button', { name: '閉じる' }).click();
   const first = page.locator('section.chunk[data-start="0"]:not(.placeholder)');
   const id = (await first.locator('g.note').first().getAttribute('id'))!;
   await page.locator(`[id="${id}"] use`).first().dispatchEvent('click');

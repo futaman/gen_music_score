@@ -14,7 +14,8 @@ export type DisplaySettings = {
   zoom: 'fit' | number; // 50〜200（%）
   noteNames: 'none' | NoteNameStyle;
   measureNumbers: 'system' | 'every' | 'five' | 'none';
-  colorBy: 'none' | 'instrument';
+  /** auto：編曲で作った楽譜だけ「編曲元パートごと」、ほかはなし（仕様の既定） */
+  colorBy: 'auto' | 'none' | 'instrument' | 'source';
   follow: boolean; // 再生中に自動スクロール
   theme: 'system' | 'light' | 'dark';
   hornKeySignature: 'with' | 'without';
@@ -31,13 +32,13 @@ export function defaultSettings(device: Device): DisplaySettings {
     zoom: 'fit',
     noteNames: 'none',
     measureNumbers: 'system',
-    colorBy: 'none',
+    colorBy: 'auto',
     follow: true,
     theme: 'system',
     hornKeySignature: 'with',
     warnings: true,
     multiRest: false,
-    showEdits: true,
+    showEdits: false,
   };
 }
 

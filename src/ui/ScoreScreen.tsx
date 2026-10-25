@@ -84,6 +84,9 @@ const DURATION_KEYS: Record<string, NoteType> = {
 };
 
 /** 画面に描いた要素の id（単音は音の id、和音・休符は音符の id） */
+/** 色分け「編曲元パートごと」の色の数（styles.css の .src0〜.src7） */
+const SOURCE_COLORS = 8;
+
 const elementIdOf = (n: Note) => (n.heads.length === 1 ? n.heads[0].id : n.id);
 
 export function ScoreScreen({
@@ -396,6 +399,20 @@ export function ScoreScreen({
       }
     return set;
   }, [issues, overfull, score.notes, arrangeWarnings, noteById]);
+  // 色分け「編曲元パートごと」（自動なら編曲で作った楽譜だけ）：元のパートの順に src0, src1, … の印
+  const colorBySource =
+    settings.colorBy === 'source' || (settings.colorBy === 'auto' && !!arrangement && !!arrangeSource);
+  const bySource = useMemo((): Marks => {
+    if (!colorBySource) return {};
+    const order = new Map((arrangeSource ?? score).parts.map((p, i) => [p.id, i % SOURCE_COLORS]));
+    const out: Marks = {};
+    for (const n of score.notes) {
+      const k = n.derivedFrom ? order.get(n.derivedFrom.sourcePartId) : undefined;
+      if (k === undefined || !n.heads.length) continue;
+      ((out[`src${k}`] as Set<string> | undefined) ?? (out[`src${k}`] = new Set())).add(elementIdOf(n));
+    }
+    return out;
+  }, [colorBySource, arrangeSource, score]);
   // 編曲で作った楽譜：手で直した音
   const edited = useMemo(
     () =>
@@ -417,8 +434,8 @@ export function ScoreScreen({
           for (let st = 1; st <= staves; st++) selStaff.add(`s${m}-${pid}-${st}`);
       }
     }
-    return { sel, 'sel-staff': selStaff, edited, ...(settings.warnings ? { warn } : {}) };
-  }, [selection, selectedNote, score.parts, settings.warnings, warn, edited]);
+    return { sel, 'sel-staff': selStaff, ...bySource, edited, ...(settings.warnings ? { warn } : {}) };
+  }, [selection, selectedNote, score.parts, settings.warnings, warn, edited, bySource]);
 
   const jumpTo = (measure: number) => {
     const section = [...(viewRef.current?.querySelectorAll<HTMLElement>('section.chunk') ?? [])].find(
@@ -508,9 +525,6 @@ export function ScoreScreen({
             </option>
           ))}
         </select>
-        <button className="button" onClick={() => setPanel('transpose')}>
-          移調
-        </button>
         {scores && scores.length > 1 && (
           <select aria-label="楽譜" value={score.id} onChange={(e) => onSelectScore?.(e.target.value)}>
             {scores.map((x) => (
@@ -520,17 +534,23 @@ export function ScoreScreen({
             ))}
           </select>
         )}
-        {(arrange || onCreateArrangement) && (
-          <button className="button" onClick={() => setPanel('arrange')}>
-            編曲
+        {/* スマホでは操作ボタンを1段にまとめて、幅を分け合う */}
+        <div className="toolbar-actions">
+          <button className="button" onClick={() => setPanel('transpose')}>
+            移調
           </button>
-        )}
-        <button className="button" onClick={() => setPanel('export')}>
-          書き出し
-        </button>
-        <button className="button" onClick={() => setPanel('settings')}>
-          設定
-        </button>
+          {(arrange || onCreateArrangement) && (
+            <button className="button" onClick={() => setPanel('arrange')}>
+              編曲
+            </button>
+          )}
+          <button className="button" onClick={() => setPanel('export')}>
+            書き出し
+          </button>
+          <button className="button" onClick={() => setPanel('settings')}>
+            設定
+          </button>
+        </div>
       </header>
       <main className="score-main">
         <ScoreView

@@ -8,7 +8,10 @@ async function openScore(page: Page, name: string) {
   await page.getByLabel('楽譜ファイル').setInputFiles(asset(name));
   await page.getByRole('button', { name: '楽譜を開く' }).click();
   await page.getByLabel('表示するパート').selectOption({ index: 1 }); // 第1ヴァイオリンだけ
-  await expect(page.locator('section.chunk[data-start="0"]:not(.placeholder) g.note').first()).toBeVisible();
+  // 全体の画面テストを並べて走らせると最初の描画が遅くなることがあるので、長めに待つ
+  await expect(page.locator('section.chunk[data-start="0"]:not(.placeholder) g.note').first()).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 /** 曲の頭の n 番目の音をタップして、その id を返す */
