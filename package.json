@@ -18,6 +18,8 @@
     "check:musescore": "vite-node scripts/check-musescore-roundtrip.ts",
     "check:musescore-edits": "vite-node scripts/check-musescore-edits.ts",
     "check:midi": "vite-node scripts/check-midi.ts",
+    "verify:logic": "vitest run --config tests/verification/vitest.config.ts",
+    "verify:ui": "playwright test -c tests/verification/playwright.config.ts",
     "gen:synthetic": "node scripts/gen-synthetic-orchestra.mjs 500 > test-assets/musicxml/synthetic-orchestra-500.musicxml"
   },
   "dependencies": {
